@@ -1,0 +1,7 @@
+﻿mysql_data/
+*.zip
+*.bak
+*.log
+*.pid
+.vscode/
+.idea/

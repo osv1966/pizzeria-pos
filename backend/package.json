@@ -1,0 +1,9 @@
+{
+  "name": "pizzeria-backend",
+  "version": "1.0.0",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.22.1",
+    "mysql2": "^3.22.1"
+  }
+}

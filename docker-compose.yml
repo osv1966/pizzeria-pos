@@ -1,0 +1,48 @@
+﻿version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: pizzeria_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: pizzeria
+      MYSQL_USER: pizzeria_user
+      MYSQL_PASSWORD: pizza123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    image: node:18-alpine
+    container_name: pizzeria_backend
+    restart: always
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    command: sh -c "npm install express mysql2 cors && node server.js"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mysql
+    environment:
+      DB_HOST: mysql
+      DB_USER: pizzeria_user
+      DB_PASSWORD: pizza123
+      DB_NAME: pizzeria
+
+  frontend:
+    image: nginx:alpine
+    container_name: pizzeria_frontend
+    restart: always
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
