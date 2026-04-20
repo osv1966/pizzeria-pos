@@ -24,6 +24,7 @@
         input, select { width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; border: 1px solid #ddd; }
         .btn-danger { background: #dc3545; }
         .nome-cliente-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; }
+        .btn-pulisci { background: #dc3545; color: white; padding: 12px; margin-bottom: 15px; width: 100%; }
     </style>
 </head>
 <body>
@@ -84,6 +85,7 @@
 
     <div id="view-storico" style="display:none;">
         <h2>📜 Storico ordini</h2>
+        <button class="btn-pulisci" onclick="pulisciStorico()">🗑️ PULISCI TUTTO LO STORICO</button>
         <div id="storico-container"></div>
     </div>
 
@@ -158,7 +160,7 @@
                             </div>`;
                 });
                 html += '</div>';
-                document.getElementById('prodotti-container').innerHTML = html || '<div>Nessun prodotto</div>';
+                document.getElementById('prodotti-container').innerHTML = html;
             } catch(e) {
                 document.getElementById('prodotti-container').innerHTML = '<div style="color:red">❌ Errore</div>';
             }
@@ -271,6 +273,20 @@
                 document.getElementById('storico-container').innerHTML = html || '<div class="ordine-card">📭 Nessuno storico</div>';
             } catch(e) {
                 document.getElementById('storico-container').innerHTML = '<div class="ordine-card">❌ Errore</div>';
+            }
+        }
+
+        async function pulisciStorico() {
+            if (!confirm('⚠️ ATTENZIONE! Eliminerai TUTTO lo storico. Sei sicuro?')) return;
+            try {
+                let res = await fetch(API_URL + '/api/storico/pulisci', { method: 'DELETE' });
+                let data = await res.json();
+                if (data.success) {
+                    alert(`✅ Eliminati ${data.eliminati} ordini dallo storico`);
+                    caricaStorico();
+                }
+            } catch(e) {
+                alert('❌ Errore: ' + e.message);
             }
         }
 
