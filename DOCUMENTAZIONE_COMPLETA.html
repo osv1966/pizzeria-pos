@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Documentazione Completa Pizzeria POS</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+h1 { color: #ff6b00; border-bottom: 3px solid #ff6b00; padding-bottom: 10px; }
+h2 { color: #28a745; margin-top: 30px; border-left: 4px solid #28a745; padding-left: 15px; }
+h3 { color: #17a2b8; margin-top: 20px; }
+table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+th { background: #ff6b00; color: white; }
+code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+pre { background: #1a1a2e; color: #fff; padding: 15px; border-radius: 8px; overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<h1>🍕 PIZZERIA POS - DOCUMENTAZIONE TECNICA COMPLETA</h1>
+
+<!-- ============================================ -->
+<h2>📌 INDICE</h2>
+<ul>
+<li>1. Architettura generale</li>
+<li>2. Struttura cartelle</li>
+<li>3. Database (tabelle, campi, relazioni)</li>
+<li>4. API Backend (tutti gli endpoint)</li>
+<li>5. Frontend (schermi e funzioni)</li>
+<li>6. Comandi Docker (tutti)</li>
+<li>7. Credenziali</li>
+<li>8. Risoluzione problemi</li>
+<li>9. Backup e ripristino</li>
+<li>10. Hardware consigliato</li>
+<li>11. Personalizzazioni comuni</li>
+<li>12. Accesso da dispositivi</li>
+<li>13. Stati dei tavoli</li>
+<li>14. API esempi pratici</li>
+</ul>
+
+<!-- ============================================ -->
+<h2>1. 🏗️ ARCHITETTURA GENERALE</h2>
+
+<h3>1.1 Componenti</h3>
+<table>
+<tr><th>Container</th><th>Immagine</th><th>Porta</th><th>Descrizione</th></tr>
+<tr><td>pizzeria_mysql</td><td>mysql:8</td><td>3306</td><td>Database MySQL</td></tr>
+<tr><td>pizzeria_backend</td><td>node:18-alpine</td><td>3000</td><td>API Node.js/Express</td></tr>
+<tr><td>pizzeria_frontend</td><td>nginx:alpine</td><td>8080</td><td>Server web statico</td></tr>
+</table>
+
+<h3>1.2 Flusso dei dati</h3>
+<pre>
+Tablet/Cellulare → Browser → frontend:8080 → backend:3000 → mysql:3306
+</pre>
+
+<h3>1.3 Diagramma</h3>
+<pre>
+┌─────────────────────────────────────────────────────────────────┐
+│                          CLIENT                                 │
+│  (Browser su tablet/cellulare/computer)                        │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    FRONTEND (nginx:8080)                        │
+│  - cucina.html (touch screen cuoco)                            │
+│  - cassa.html (monitor cameriere)                              │
+│  - storico.html (cronologia)                                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ (chiamate AJAX/fetch)
+┌─────────────────────────────────────────────────────────────────┐
+│                    BACKEND (Node.js:3000)                       │
+│  - API REST                                                    │
+│  - Server.js con tutte le route                                │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ (query SQL)
+┌─────────────────────────────────────────────────────────────────┐
+│                    DATABASE (MySQL:3306)                        │
+│  - Tabelle: prodotti, categorie, ordini, dettagli_ordine,      │
+│             tavoli, stati_tavoli, storico_stati                │
+└─────────────────────────────────────────────────────────────────┘
+</pre>
+
+<!-- ============================================ -->
+<h2>2. 📁 STRUTTURA CARTELLE</h2>
+<pre>
+C:\Users\Utente\Desktop\PizzeriaFinale/
+│
+├── docker-compose.yml              # Configurazione container
+├── .gitignore                       # File esclusi da git
+├── README.md                        # Istruzioni base
+│
+├── backend/
+│   ├── server.js                    # API Node.js (TUTTE LE ROUTE)
+│   ├── package.json                 # Dipendenze Node
+│   ├── package-lock.json
+│   └── node_modules/                # Dipendenze (escluse da git)
+│
+├── frontend/
+│   ├── index.html                   # Interfaccia originale
+│   ├── cucina.html                  # Schermo cucina (60 tavoli, selezione multipla)
+│   ├── cassa.html                   # Schermo cassa (monitor sola lettura)
+│   ├── storico.html                 # Storico cambi stato
+│   └── menu.html                    # (opzionale) Menu QR code
+│
+└── database/
+    └── init.sql                     # Script iniziale database
+</pre>
+
+<!-- ============================================ -->
+<h2>3. 🗄️ DATABASE (MySQL)</h2>
+
+<h3>3.1 Credenziali accesso</h3>
+<table>
+<tr><th>Tipo</th><th>Username</th><th>Password</th><th>Database</th></tr>
+<tr><td>Root</td><td>root</td><td>root123</td><td>pizzeria</td></tr>
+<tr><td>User</td><td>pizzeria_user</td><td>pizza123</td><td>pizzeria</td></tr>
+</table>
+
+<h3>3.2 Tabella: prodotti</h3>
+<table>
+<tr><th>Campo</th><th>Tipo</th><th>Descrizione</th></tr>
+<tr><td>id</td><td>INT (PK)</td><td>Auto-incrementale</td></tr>
+<tr><td>nome</td><td>VARCHAR(100)</td><td>Nome prodotto (es. Margherita)</td></tr>
+<tr><td>prezzo</td><td>DECIMAL(10,2)</td><td>Prezzo in euro</td></tr>
+<tr><td>categoria_id</td><td>INT (FK)</td><td>Riferimento a categorie</td></tr>
+<tr><td>disponibile</td><td>TINYINT</td><td>1=disponibile, 0=non disponibile</td></tr>
+</table>
+
+<h3>3.3 Tabella: categorie</h3>
+<table>
+<tr><th>Campo</th><th>Tipo</th><th>Descrizione</th></tr>
+<tr><td>id</td><td>INT (PK)</td><td>Auto-incrementale</td></tr>
+<tr><td>nome</td><td>VARCHAR(50)</td><td>Nome categoria (es. "Pizze")</td></tr>
+<tr><td>tipo</td><td>VARCHAR(50)</td><td>cucina/friggitoria/bar</td></tr>
+</table>
+
+<h3>3.4 Tabella: ordini</h3>
+<table>
+<tr><th>Campo</th><th>Tipo</th><th>Descrizione</th></tr>
+<tr><td>id</td><td>INT (PK)</td><td>Auto-incrementale</td></tr>
+<tr><td>tavolo_numero</td><td>INT</td><td>Numero tavolo (1-60)</td></tr>
+<tr><td>zona</td><td>VARCHAR(50)</td><td>Sala/Dehor/Bar</td></tr>
+<tr><td>nome_cliente</td><td>VARCHAR(100)</td><td>Nome cliente (opzionale)</td></tr>
+<tr><td>reparto</td><td>VARCHAR(50)</td><td>cucina/friggitoria/bar</td></tr>
+<tr><td>stato</td><td>VARCHAR(20)</td><td>in_attesa/completato</td></tr>
+<tr><td>stato_cucina</td><td>ENUM</td><td>in_attesa/lavorazione/pronto/non_disponibile</td></tr>
+<tr><td>tempo_preparazione</td><td>INT</td><td>Minuti stimati</td></tr>
+<tr><td>data_ora</td><td>TIMESTAMP</td><td>Data/ora ricezione</td></tr>
+<tr><td>ora_uscita</td><td>TIMESTAMP</td><td>Data/ora completamento</td></tr>
+<tr><td>note</td><td>VARCHAR(255)</td><td>Note aggiuntive</td></tr>
+</table>
+
+<h3>3.5 Tabella: dettagli_ordine</h3>
+<table>
+<tr><th>Campo</th><th>Tipo</th><th>Descrizione</th></tr>
+<tr><td>id</td><td>INT (PK)</td><td>Auto-incrementale</td></tr>
+<tr><td>ordine_id</td><td>INT (FK)</td><td>Riferimento a ordini</td></tr>
+<tr><td>prodotto_id</td><td>INT (FK)</td><td>Riferimento a prodotti</td></tr>
+<tr><td>quantita</td><td>INT</td><td>Quantità ordinata</td></tr>
+<tr><td>prezzo_unita</td><td>DECIMAL(10,2)</td><td>Prezzo al momento ordine</td></tr>
+</table>
+
+<h3>3.6 Tabella: tavoli</h3>
+<table>
+<tr><th>Campo</th><th>Tipo</th><th>Descrizione</th></tr>
+<tr><td>id</td><td>INT (PK)</td><td>Numero tavolo (1-60)</td></tr>
+<tr><td>nome</td><td>VARCHAR(10)</td><td>"Tavolo 1", "Tavolo 2", ...</td></tr>
+<tr><td>qr_token</td><td>VARCHAR(100)</td><td>Token per QR code (opzionale)</td></tr>
+</table>
+
+<h3>3.7 Tabella: stati_tavoli</h3>
+<table>
+<tr><th>Campo</th><th>Tipo</th><th>Descrizione</th></tr>
+<tr><td>tavolo_id</td><td>INT (PK)</td><td>Riferimento a tavoli</td></tr>
+<tr><td>stato</td><td>VARCHAR(20)</td><td>in_attesa/lavorazione/pronto/non_disponibile</td></tr>
+<tr><td>tempo_minuti</td><td>INT</td><td>Minuti (se in lavorazione)</td></tr>
+<tr><td>ultimo_aggiornamento</td><td>TIMESTAMP</td><td>Auto-aggiornato</td></tr>
+</table>
+
+<h3>3.8 Tabella: storico_stati</h3>
+<table>
+<tr><th>Campo</th><th>Tipo</th><th>Descrizione</th></tr>
+<tr><td>id</td><td>INT (PK)</td><td>Auto-incrementale</td></tr>
+<tr><td>tavolo_id</td><td>INT</td><td>Numero tavolo</td></tr>
+<tr><td>stato</td><td>VARCHAR(20)</td><td>Stato cambiato</td></tr>
+<tr><td>tempo_minuti</td><td>INT</td><td>Minuti (se in lavorazione)</td></tr>
+<tr><td>data_ora</td><td>TIMESTAMP</td><td>Data/ora del cambio</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2>4. 🔌 API BACKEND (server.js)</h2>
+
+<h3>4.1 Prodotti</h3>
+<table>
+<tr><th>Metodo</th><th>Endpoint</th><th>Descrizione</th></tr>
+<tr><td>GET</td><td>/api/prodotti</td><td>Lista tutti i prodotti</td></tr>
+</table>
+
+<h3>4.2 Ordini</h3>
+<table>
+<tr><th>Metodo</th><th>Endpoint</th><th>Descrizione</th></tr>
+<tr><td>POST</td><td>/api/ordini</td><td>Crea nuovo ordine</td></tr>
+<tr><td>GET</td><td>/api/ordini/:reparto</td><td>Ordini attivi (cucina/friggitoria/bar)</td></tr>
+<tr><td>PUT</td><td>/api/ordini/:id/completa</td><td>Segna ordine come completato</td></tr>
+<tr><td>GET</td><td>/api/storico</td><td>Storico ordini completati</td></tr>
+<tr><td>DELETE</td><td>/api/storico/pulisci</td><td>Cancella tutto lo storico</td></tr>
+</table>
+
+<h3>4.3 Stati Tavoli (⭐ PRINCIPALI)</h3>
+<table>
+<tr><th>Metodo</th><th>Endpoint</th><th>Descrizione</th></tr>
+<tr><td>GET</td><td>/api/stati-tavoli</td><td>Stato di tutti i 60 tavoli</td></tr>
+<tr><td>GET</td><td>/api/stati-tavoli/:id</td><td>Stato di un singolo tavolo</td></tr>
+<tr><td>PUT</td><td>/api/stati-tavoli/:id</td><td>Aggiorna stato (senza storico)</td></tr>
+<tr><td>PUT</td><td>/api/stati-tavoli/:id/con-storico</td><td>Aggiorna stato + registra in storico</td></tr>
+<tr><td>GET</td><td>/api/storico-tutti</td><td>Tutto lo storico cambi (ultimi 200)</td></tr>
+<tr><td>GET</td><td>/api/storico-tavolo/:id</td><td>Storico di un singolo tavolo</td></tr>
+</table>
+
+<h3>4.4 Admin</h3>
+<table>
+<tr><th>Metodo</th><th>Endpoint</th><th>Descrizione</th></tr>
+<tr><td>GET</td><td>/api/admin/prodotti</td><td>Lista prodotti (admin)</td></tr>
+<tr><td>POST</td><td>/api/admin/prodotti</td><td>Aggiungi nuovo prodotto</td></tr>
+<tr><td>DELETE</td><td>/api/admin/prodotti/:id</td><td>Elimina prodotto</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2>5. 🖥️ FRONTEND - SCHERMI</h2>
+
+<h3>5.1 Cucina (cucina.html) - TOUCH SCREEN</h3>
+<p><strong>URL:</strong> <code>http://IP:8080/cucina.html</code></p>
+<p><strong>Funzionalità principali:</strong></p>
+<ul>
+<li>Griglia 60 tavoli (6 colonne x 10 righe)</li>
+<li>Selezione multipla (tocca i tavoli per selezionarli/deselezionarli)</li>
+<li>Barra azioni in basso (appare solo con tavoli selezionati)</li>
+<li>Statistiche in tempo reale (In attesa/In lavoro/Pronti/Non disp.)</li>
+<li>Aggiornamento automatico ogni 4 secondi</li>
+<li>Alert vocale (feedback sonoro)</li>
+</ul>
+
+<h4>Pulsanti azione:</h4>
+<table>
+<tr><th>Pulsante</th><th>Colore</th><th>Azione</th><th>Vocale</th></tr>
+<tr><td>PRONTO</td><td>🟢 Verde</td><td>Stato → pronto</td><td>"Tavolo X, pronto da portare"</td></tr>
+<tr><td>IN LAVORAZIONE</td><td>🟠 Arancione</td><td>Mostra scelta tempo (10/20/30/45/60 min)</td><td>"Tavolo X, in lavorazione per Y minuti"</td></tr>
+<tr><td>NON DISPONIBILE</td><td>🔴 Rosso</td><td>Stato → non disponibile</td><td>Nessuna</td></tr>
+<tr><td>ANNULLA</td><td>⚪ Grigio</td><td>Deseleziona tutti</td><td>Nessuna</td></tr>
+</table>
+
+<h3>5.2 Cassa (cassa.html) - MONITOR</h3>
+<p><strong>URL:</strong> <code>http://IP:8080/cassa.html</code></p>
+<ul>
+<li>Griglia 60 tavoli in sola lettura</li>
+<li>Mostra per ogni tavolo: numero, stato, tempo (se presente)</li>
+<li>Aggiornamento automatico ogni 5 secondi</li>
+<li>Nessun pulsante di azione (solo visualizzazione)</li>
+</ul>
+
+<h3>5.3 Storico (storico.html)</h3>
+<p><strong>URL:</strong> <code>http://IP:8080/storico.html</code></p>
+<ul>
+<li>Tabella con tutti i cambi di stato</li>
+<li>Colonne: Tavolo, Stato, Tempo, Data/Ora</li>
+<li>Filtro per tavolo (select menu)</li>
+<li>Ordinamento cronologico decrescente (il più recente in alto)</li>
+</ul>
+
+<!-- ============================================ -->
+<h2>6. 🔧 COMANDI DOCKER</h2>
+
+<h3>6.1 Gestione del sistema</h3>
+<table>
+<tr><th>Comando</th><th>Descrizione</th></tr>
+<tr><td><code>docker-compose up -d</code></td><td>Avvia tutti i container in background</td></tr>
+<tr><td><code>docker-compose down</code></td><td>Ferma tutti i container</td></tr>
+<tr><td><code>docker-compose down && docker-compose up -d --build</code></td><td>Riavvia ricostruendo le immagini</td></tr>
+<tr><td><code>docker-compose ps</code></td><td>Mostra lo stato dei container</td></tr>
+<tr><td><code>docker-compose logs -f</code></td><td>Mostra i log in tempo reale</td></tr>
+</table>
+
+<h3>6.2 Container singoli</h3>
+<table>
+<tr><th>Comando</th><th>Descrizione</th></tr>
+<tr><td><code>docker restart pizzeria_backend</code></td><td>Riavvio solo backend</td></tr>
+<tr><td><code>docker restart pizzeria_frontend</code></td><td>Riavvio solo frontend</td></tr>
+<tr><td><code>docker restart pizzeria_mysql</code></td><td>Riavvio solo database</td></tr>
+<tr><td><code>docker logs pizzeria_backend -f</code></td><td>Log solo backend</td></tr>
+<tr><td><code>docker exec -it pizzeria_backend sh</code></td><td>Entrare nel container backend</td></tr>
+</table>
+
+<h3>6.3 Database</h3>
+<table>
+<tr><th>Comando</th><th>Descrizione</th></tr>
+<tr><td><code>docker exec -it pizzeria_mysql mysql -upizzeria_user -ppizza123 pizzeria</code></td><td>Accedi a MySQL</td></tr>
+<tr><td><code>docker exec pizzeria_mysql mysqldump -upizzeria_user -ppizza123 pizzeria > backup.sql</code></td><td>Backup database</td></tr>
+<tr><td><code>cat backup.sql | docker exec -i pizzeria_mysql mysql -upizzeria_user -ppizza123 pizzeria</code></td><td>Ripristino database</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2>7. 🔐 CREDENZIALI</h2>
+<table>
+<tr><th>Servizio</th><th>Username</th><th>Password</th></tr>
+<tr><td>MySQL (root)</td><td>root</td><td>root123</td></tr>
+<tr><td>MySQL (user)</td><td>pizzeria_user</td><td>pizza123</td></tr>
+<tr><td>Database nome</td><td colspan="2">pizzeria</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2>8. 🚨 RISOLUZIONE PROBLEMI</h2>
+<table>
+<tr><th>Problema</th><th>Causa probabile</th><th>Soluzione</th></tr>
+<tr><td>Connection refused</td><td>Container non partiti</td><td><code>docker-compose up -d</code></td></tr>
+<tr><td>404 Not Found</td><td>File HTML mancante</td><td>Verificare <code>frontend/</code> esiste</td></tr>
+<tr><td>Stato tavoli non si aggiorna</td><td>Backend fermo</td><td><code>docker restart pizzeria_backend</code></td></tr>
+<tr><td>Storico non registra</td><td>API sbagliata</td><td>Usare <code>/con-storico</code> non <code>/stati-tavoli</code></td></tr>
+<tr><td>Porta 8080 già in uso</td><td>Altro software</td><td>Cambiare porta in docker-compose.yml</td></tr>
+<tr><td>Voce non funziona</td><td>Browser non supporta</td><td>Usare Chrome/Edge/Safari recente</td></tr>
+<tr><td>Selezione multipla non funziona</td><td>File cucina.html vecchio</td><td>Sostituire con versione aggiornata</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2>9. 💾 BACKUP E RIPRISTINO</h2>
+
+<h3>9.1 Backup database</h3>
+<pre>cd /mnt/c/Users/Utente/Desktop
+docker exec pizzeria_mysql mysqldump -upizzeria_user -ppizza123 pizzeria > backup_db_$(date +%Y%m%d_%H%M%S).sql</pre>
+
+<h3>9.2 Backup completo cartella</h3>
+<pre>cd /mnt/c/Users/Utente/Desktop
+tar -czvf PizzeriaFinale_backup_$(date +%Y%m%d_%H%M%S).tar.gz PizzeriaFinale/</pre>
+
+<h3>9.3 Ripristino database</h3>
+<pre>cat backup_db_20260101_120000.sql | docker exec -i pizzeria_mysql mysql -upizzeria_user -ppizza123 pizzeria</pre>
+
+<h3>9.4 Ripristino cartella completa</h3>
+<pre>cd /mnt/c/Users/Utente/Desktop
+tar -xzvf PizzeriaFinale_backup_20260101_120000.tar.gz
+cd PizzeriaFinale
+docker-compose up -d</pre>
+
+<!-- ============================================ -->
+<h2>10. 💻 HARDWARE CONSIGLIATO</h2>
+
+<h3>10.1 Computer server (dove gira Docker)</h3>
+<table>
+<tr><th>Componente</th><th>Minimo</th><th>Consigliato</th></tr>
+<tr><td>CPU</td><td>Intel i3 / 2 core</td><td>Intel i5 / 4 core</td></tr>
+<tr><td>RAM</td><td>4 GB</td><td>8 GB</td></tr>
+<tr><td>Storage</td><td>20 GB</td><td>50 GB SSD</td></tr>
+<tr><td>Sistema Operativo</td><td>Windows 10/11, Linux, macOS</td><td>Windows 11 / Ubuntu 22.04</td></tr>
+</table>
+
+<h3>10.2 Schermo Cucina (touch)</h3>
+<table>
+<tr><th>Caratteristica</th><th>Consigliato</th></tr>
+<tr><td>Dimensione</td><td>15" - 21"</td></tr>
+<tr><td>Tipo</td><td>Touch capacitivo (come tablet)</td></tr>
+<tr><td>Risoluzione</td><td>Minimo 1280x720</td></tr>
+</table>
+
+<h3>10.3 Schermo Cassa (monitor)</h3>
+<table>
+<tr><th>Caratteristica</th><th>Consigliato</th></tr>
+<tr><td>Dimensione</td><td>15" - 21"</td></tr>
+<tr><td>Tipo</td><td>Normale (non serve touch)</td></tr>
+<tr><td>Risoluzione</td><td>1280x720 o superiore</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2>11. 🔧 PERSONALIZZAZIONI COMUNI</h2>
+
+<h3>11.1 Cambiare il numero di tavoli (es. da 60 a 80)</h3>
+<pre>for i in $(seq 61 80); do
+  docker exec -i pizzeria_mysql mysql -upizzeria_user -ppizza123 -e \
+  "USE pizzeria; INSERT INTO tavoli (id, nome) VALUES ($i, 'Tavolo $i');"
+  docker exec -i pizzeria_mysql mysql -upizzeria_user -ppizza123 -e \
+  "USE pizzeria; INSERT INTO stati_tavoli (tavolo_id, stato) VALUES ($i, 'in_attesa');"
+done</pre>
+
+<h3>11.2 Cambiare il testo dell'alert vocale</h3>
+<p>Modificare in <code>frontend/cucina.html</code> le righe:</p>
+<pre>// Prima
+parla(`Tavolo ${id}, pronto da portare`);
+
+// Dopo - esempio
+parla(`Il tavolo ${id} è pronto, venite a ritirare`);</pre>
+
+<h3>11.3 Cambiare l'IP del server</h3>
+<p>Modificare in TUTTI i file <code>.html</code> la riga:</p>
+<pre>let API_URL = 'http://' + window.location.hostname + ':3000';</pre>
+<p>Sostituire con IP fisso:</p>
+<pre>let API_URL = 'http://192.168.1.100:3000';</pre>
+
+<h3>11.4 Cambiare i colori degli stati</h3>
+<p>Modificare in <code>frontend/cucina.html</code> i CSS:</p>
+<pre>.stato-pronto { background: #28a745; }  /* Verde */
+.stato-lavorazione { background: #fd7e14; }  /* Arancione */
+.stato-non-disponibile { background: #dc3545; }  /* Rosso */
+.stato-attesa { background: #6c757d; }  /* Grigio */</pre>
+
+<!-- ============================================ -->
+<h2>12. 🌐 ACCESSO DA DISPOSITIVI</h2>
+
+<h3>12.1 URL finali</h3>
+<table>
+<tr><th>Schermo</th><th>URL computer server</th><th>URL tablet/cellulare</th></tr>
+<tr><td>Cucina (touch)</td><td><code>http://localhost:8080/cucina.html</code></td><td><code>http://192.168.1.61:8080/cucina.html</code></td></tr>
+<tr><td>Cassa (monitor)</td><td><code>http://localhost:8080/cassa.html</code></td><td><code>http://192.168.1.61:8080/cassa.html</code></td></tr>
+<tr><td>Storico</td><td><code>http://localhost:8080/storico.html</code></td><td><code>http://192.168.1.61:8080/storico.html</code></td></tr>
+</table>
+<p><strong>Nota:</strong> Sostituire <code>192.168.1.61</code> con l'IP del computer server.<br>
+Per trovare l'IP: <code>ip addr show</code> (Linux) o <code>ipconfig</code> (Windows)</p>
+
+<!-- ============================================ -->
+<h2>13. 📊 STATI DEI TAVOLI</h2>
+<table>
+<tr><th>Stato</th><th>Colore</th><th>Descrizione</th><th>Azione vocale</th></tr>
+<tr><td>in_attesa</td><td>⚪ Grigio</td><td>Ordine ricevuto, in attesa</td><td>Nessuna</td></tr>
+<tr><td>lavorazione</td><td>🟠 Arancione</td><td>In preparazione</td><td>"Tavolo X, in lavorazione per Y minuti"</td></tr>
+<tr><td>pronto</td><td>🟢 Verde</td><td>Pronto da servire</td><td>"Tavolo X, pronto da portare"</td></tr>
+<tr><td>non_disponibile</td><td>🔴 Rosso</td><td>Temporaneamente non disponibile</td><td>Nessuna</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2>14. 🔌 API ESEMPI PRATICI</h2>
+
+<h3>Ottenere stato di tutti i tavoli</h3>
+<pre>curl http://localhost:3000/api/stati-tavoli</pre>
+
+<h3>Impostare tavolo 5 come "pronto" (con storico)</h3>
+<pre>curl -X PUT http://localhost:3000/api/stati-tavoli/5/con-storico \
+  -H "Content-Type: application/json" \
+  -d '{"stato":"pronto","tempo_minuti":null}'</pre>
+
+<h3>Impostare tavolo 5 come "in lavorazione" per 20 minuti</h3>
+<pre>curl -X PUT http://localhost:3000/api/stati-tavoli/5/con-storico \
+  -H "Content-Type: application/json" \
+  -d '{"stato":"lavorazione","tempo_minuti":20}'</pre>
+
+<h3>Ottenere tutto lo storico</h3>
+<pre>curl http://localhost:3000/api/storico-tutti</pre>
+
+<!-- ============================================ -->
+<h2>📞 SUPPORTO</h2>
+<ul>
+<li>Repository GitHub: <code>https://github.com/osv1966/pizzeria-pos</code></li>
+<li>File principale backend: <code>backend/server.js</code></li>
+<li>File principale frontend cucina: <code>frontend/cucina.html</code></li>
+<li>File principale frontend cassa: <code>frontend/cassa.html</code></li>
+</ul>
+
+<hr>
+<p><em>Documentazione generata il: Aprile 2026</em></p>
+<p><em>Versione: 3.0 - Completa con tutti i dettagli</em></p>
+
+</body>
+</html>

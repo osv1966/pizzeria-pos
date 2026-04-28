@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Pizzeria POS - Documentazione Definitiva</title>
+<style>
+body { font-family: 'Segoe UI', Arial, sans-serif; margin: 40px; line-height: 1.6; max-width: 1200px; margin: 0 auto; padding: 20px; }
+h1 { color: #ff6b00; border-bottom: 3px solid #ff6b00; padding-bottom: 10px; }
+h2 { color: #28a745; margin-top: 40px; border-left: 4px solid #28a745; padding-left: 15px; }
+h3 { color: #17a2b8; margin-top: 25px; }
+h4 { color: #fd7e14; margin-top: 20px; }
+table { border-collapse: collapse; width: 100%; margin: 15px 0; font-size: 14px; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+th { background: #ff6b00; color: white; }
+code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; }
+pre { background: #1a1a2e; color: #fff; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 13px; }
+.note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px 15px; margin: 15px 0; }
+.warning { background: #f8d7da; border-left: 4px solid #dc3545; padding: 10px 15px; margin: 15px 0; }
+.success { background: #d4edda; border-left: 4px solid #28a745; padding: 10px 15px; margin: 15px 0; }
+</style>
+</head>
+<body>
+
+<h1>🍕 PIZZERIA POS - DOCUMENTAZIONE DEFINITIVA</h1>
+<p><strong>Versione:</strong> 1.0 | <strong>Data:</strong> Aprile 2026 | <strong>Autore:</strong> Sistema Pizzeria</p>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>📌 INDICE GENERALE</h2>
+<ol>
+<li>Cos'è questo sistema (introduzione)</li>
+<li>Flusso di lavoro (come funziona giorno per giorno)</li>
+<li>Schermo CUCINA (istruzioni per il cuoco)</li>
+<li>Schermo CASSA (istruzioni per il cameriere)</li>
+<li>Schermo STORICO (consultazione)</li>
+<li>Architettura tecnica (come è fatto)</li>
+<li>Comandi Docker (manutenzione)</li>
+<li>Database (struttura e tabelle)</li>
+<li>API Backend (per sviluppatori)</li>
+<li>Backup e ripristino (salvare i dati)</li>
+<li>Manutenzione ordinaria (cosa fare ogni giorno/settimana/mese)</li>
+<li>Risoluzione problemi (errori comuni)</li>
+<li>Personalizzazioni (cambiare impostazioni)</li>
+<li>Hardware consigliato</li>
+<li>Appendice: comandi rapidi</li>
+</ol>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>1. 📖 COS'È QUESTO SISTEMA</h2>
+<p>Il sistema Pizzeria POS è un'applicazione web che permette di gestire le comunicazioni tra <strong>cucina</strong> e <strong>camerieri</strong> in una pizzeria/panineria con 60 tavoli.</p>
+
+<p><strong>Cosa risolve:</strong></p>
+<ul>
+<li>Il cuoco sa quali tavoli sono in attesa, in lavorazione o pronti</li>
+<li>Il cameriere vede in tempo reale lo stato di ogni tavolo</li>
+<li>Storico di tutti i cambi di stato</li>
+<li>Alert vocale che annuncia quando un ordine è pronto</li>
+</ul>
+
+<p><strong>Cosa NON fa questo sistema:</strong></p>
+<ul>
+<li>Non gestisce i prodotti/piatti (la pizzeria ha già un sistema per gli ordini)</li>
+<li>Non gestisce il pagamento</li>
+<li>Non gestisce la prenotazione dei tavoli</li>
+</ul>
+
+<div class="note">
+<strong>⚠️ Nota importante:</strong> Questo sistema è <strong>separato</strong> dal sistema della pizzeria. La cucina riceve già le comande (cosa hanno ordinato i tavoli) da un altro sistema. Questo serve solo per comunicare lo stato di avanzamento.
+</div>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>2. 🔄 FLUSSO DI LAVORO (GIORNO PER GIORNO)</h2>
+
+<h3>2.1 Schema riassuntivo</h3>
+<pre>
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           FLUSSO COMPLETO                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  CAMERIERE                        CUCINA                           CLIENTE  │
+│  ──────────                       ──────                           ──────   │
+│                                                                             │
+│  1. Prende ordine al tavolo                                                │
+│  2. Inserisce ordine nel                                                    │
+│     sistema della pizzeria                                                  │
+│         │                                                                   │
+│         ▼                                                                   │
+│     La comanda (es. "Tavolo 5,                                            │
+│     2 pizze") arriva in cucina                                             │
+│     sul sistema della pizzeria                                              │
+│         │                                                                   │
+│         ▼                                                                   │
+│                             3. Cuoco vede l'ordine                         │
+│                                sul sistema pizzeria                         │
+│                             4. Cuoco apre il nostro sistema                │
+│                                su tablet touch                              │
+│                             5. Clicca sul tavolo 5                         │
+│                             6. Sceglie stato:                               │
+│                                🟠 IN LAVORAZIONE (20 min)                   │
+│         │                                                                   │
+│         ▼                                                                   │
+│  7. Cameriere vede su                                                        │
+│     schermo CASSA:                                                          │
+│     "Tavolo 5 - In lavorazione 20min"                                       │
+│                             8. Quando pronto, cuoco clicca                  │
+│                                🟢 PRONTO                                     │
+│         │                        │                                          │
+│         ▼                        ▼                                          │
+│  9. Cameriere vede            10. VOCE: "Tavolo 5,                         │
+│     "Tavolo 5 - Pronto"          pronto da portare"                         │
+│         │                        │                                          │
+│         ▼                        ▼                                          │
+│  11. Porta l'ordine al tavolo   12. Cliente riceve                         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+</pre>
+
+<h3>2.2 Tabella riassuntiva ruoli</h3>
+<table>
+<tr><th>Ruolo</th><th>Cosa fa</th><th>Usa cosa</th></tr>
+<tr><td><strong>Cameriere</strong></td><td>Registra ordine, serve al tavolo, controlla stato</td><td>Schermo CASSA (monitor) + sistema pizzeria</td></tr>
+<tr><td><strong>Cuoco</strong></td><td>Prepara ordini, aggiorna stato (In lavoro/Pronto/Non disp.)</td><td>Schermo CUCINA (touch) + sistema pizzeria</td></tr>
+<tr><td><strong>Manager</strong></td><td>Controlla storico, gestisce prodotti</td><td>Schermo STORICO + ADMIN</td></tr>
+</table>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>3. 🖥️ SCHERMO CUCINA - ISTRUZIONI PER IL CUOCO</h2>
+
+<h3>3.1 Come accedere</h3>
+<pre>http://IP_DEL_SERVER:8080/cucina.html</pre>
+<p><em>Esempio: http://192.168.1.61:8080/cucina.html</em></p>
+
+<h3>3.2 Cosa vedi</h3>
+<ul>
+<li><strong>Griglia 60 tavoli</strong> (6 colonne x 10 righe)</li>
+<li><strong>Statistiche in alto</strong>: In attesa / In lavoro / Pronti / Non disp.</li>
+<li><strong>Ogni tavolo mostra:</strong> numero, stato, tempo (se in lavoro)</li>
+<li><strong>Colori:</strong> Grigio=attesa, Arancione=lavorazione, Verde=pronto, Rosso=non disp.</li>
+</ul>
+
+<h3>3.3 Come si usa</h3>
+<ol>
+<li><strong>Selezionare uno o più tavoli:</strong> tocca sul tavolo (si evidenzia in blu)</li>
+<li><strong>Deselezionare:</strong> tocca di nuovo un tavolo selezionato</li>
+<li><strong>Azione singola:</strong> seleziona solo un tavolo, poi scegli azione</li>
+<li><strong>Azione multipla:</strong> seleziona più tavoli, poi scegli azione (tutti cambiano insieme)</li>
+</ol>
+
+<h3>3.4 Pulsanti azione</h3>
+<table>
+<tr><th>Pulsante</th><th>Colore</th><th>Cosa fa</th><th>Vocale</th></tr>
+<tr><td><strong>PRONTO</strong></td><td>🟢 Verde</td><td>Il piatto è pronto da portare</td><td>"Tavolo X, pronto da portare"</td></tr>
+<tr><td><strong>IN LAVORAZIONE</strong></td><td>🟠 Arancione</td><td>Mostra scelta tempo (10/20/30/45/60 min)</td><td>"Tavolo X, in lavorazione per Y minuti"</td></tr>
+<tr><td><strong>NON DISPONIBILE</strong></td><td>🔴 Rosso</td><td>Problema momentaneo (es. forno fermo)</td><td>Nessuna (silenzioso)</td></tr>
+<tr><td><strong>ANNULLA</strong></td><td>⚪ Grigio</td><td>Deseleziona tutti i tavoli</td><td>Nessuna</td></tr>
+</table>
+
+<h3>4.5 Esempio pratico</h3>
+<div class="success">
+<strong>Scenario:</strong> Tavolo 5 ha ordinato 2 pizze. Cuoco inizia a prepararle.<br><br>
+<strong>Azioni:</strong>
+<ol>
+<li>Tocca sul tavolo 5 ➜ si evidenzia</li>
+<li>Clicca "IN LAVORAZIONE" ➜ sceglie "20 min"</li>
+<li>Tavolo 5 diventa ARANCIONE con scritto "🔧 In lavoro 20 min"</li>
+<li>Il cameriere vede "Tavolo 5 - In lavoro 20 min" sulla CASSA</li>
+<li>Dopo 20 min, cuoco tocca tavolo 5 ➜ clicca "PRONTO"</li>
+<li>VOCE: "Tavolo 5, pronto da portare"</li>
+<li>Cameriere vede "Tavolo 5 - Pronto" e porta l'ordine</li>
+</ol>
+</div>
+
+<h3>3.6 Aggiornamento automatico</h3>
+<p>La pagina si aggiorna da sola ogni 4 secondi. Non serve ricaricare.</p>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>4. 🖥️ SCHERMO CASSA - ISTRUZIONI PER IL CAMERIERE</h2>
+
+<h3>4.1 Come accedere</h3>
+<pre>http://IP_DEL_SERVER:8080/cassa.html</pre>
+
+<h3>4.2 Cosa vedi</h3>
+<ul>
+<li>Griglia 60 tavoli in sola lettura (non puoi cliccare)</li>
+<li>Ogni tavolo mostra: numero, stato, tempo (se in lavoro)</li>
+<li>Aggiornamento automatico ogni 5 secondi</li>
+</ul>
+
+<h3>4.3 Cosa puoi fare</h3>
+<ul>
+<li><strong>Controllare lo stato di tutti i tavoli</strong> a colpo d'occhio</li>
+<li><strong>Sapere se un tavolo:</strong> è in attesa, in lavorazione (e per quanto), pronto, o non disponibile</li>
+</ul>
+
+<h3>4.4 Cosa NON puoi fare</h3>
+<ul>
+<li>Non puoi cambiare lo stato (solo il cuoco lo fa)</li>
+<li>Non puoi selezionare tavoli</li>
+</ul>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>5. 🖥️ SCHERMO STORICO - CONSULTAZIONE</h2>
+
+<h3>5.1 Come accedere</h3>
+<pre>http://IP_DEL_SERVER:8080/storico.html</pre>
+
+<h3>5.2 Cosa vedi</h3>
+<ul>
+<li>Tabella con tutti i cambi di stato</li>
+<li>Colonne: Tavolo, Stato, Tempo, Data/Ora</li>
+<li>Filtro per selezionare un tavolo specifico</li>
+</ul>
+
+<h3>5.3 A cosa serve</h3>
+<ul>
+<li>Verificare quando un tavolo è stato segnato come "pronto"</li>
+<li>Analizzare i tempi di preparazione</li>
+<li>Verificare se ci sono stati problemi (non disponibile)</li>
+</ul>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>6. 🏗️ ARCHITETTURA TECNICA (come è fatto)</h2>
+
+<h3>6.1 Componenti</h3>
+<table>
+<tr><th>Container</th><th>Immagine</th><th>Porta</th><th>Descrizione</th></tr>
+<tr><td>pizzeria_mysql</td><td>mysql:8</td><td>3306</td><td>Database</td></tr>
+<tr><td>pizzeria_backend</td><td>node:18-alpine</td><td>3000</td><td>API</td></tr>
+<tr><td>pizzeria_frontend</td><td>nginx:alpine</td><td>8080</td><td>Interfaccia web</td></tr>
+</table>
+
+<h3>6.2 Tecnologie utilizzate</h3>
+<ul>
+<li><strong>Backend:</strong> Node.js + Express</li>
+<li><strong>Database:</strong> MySQL 8</li>
+<li><strong>Frontend:</strong> HTML5 + CSS3 + JavaScript (Vanilla)</li>
+<li><strong>Container:</strong> Docker + Docker Compose</li>
+<li><strong>API:</strong> REST</li>
+<li><strong>Voce:</strong> Web Speech API</li>
+</ul>
+
+<h3>6.3 Dove sono i file</h3>
+<pre>C:\Users\Utente\Desktop\PizzeriaFinale/
+├── docker-compose.yml
+├── backend/
+│   └── server.js
+└── frontend/
+    ├── cucina.html
+    ├── cassa.html
+    └── storico.html
+</pre>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>7. 🔧 COMANDI DOCKER (MANUTENZIONE)</h2>
+
+<h3>7.1 Avviare il sistema</h3>
+<pre>cd /mnt/c/Users/Utente/Desktop/PizzeriaFinale
+docker-compose up -d</pre>
+
+<h3>7.2 Fermare il sistema</h3>
+<pre>docker-compose down</pre>
+
+<h3>7.3 Riavviare dopo modifiche</h3>
+<pre>docker-compose down
+docker-compose up -d --build</pre>
+
+<h3>7.4 Vedere i log (errori)</h3>
+<pre>docker-compose logs -f</pre>
+<p>Premi <code>Ctrl+C</code> per uscire dai log</p>
+
+<h3>7.5 Riavviare un singolo container</h3>
+<pre>docker restart pizzeria_backend
+docker restart pizzeria_frontend
+docker restart pizzeria_mysql</pre>
+
+<h3>7.6 Entrare nel database</h3>
+<pre>docker exec -it pizzeria_mysql mysql -upizzeria_user -ppizza123 pizzeria</pre>
+
+<h3>7.7 Comandi rapidi (salva questa tabella)</h3>
+<table>
+<tr><th>Comando</th><th>A cosa serve</th></tr>
+<tr><td><code>docker-compose up -d</code></td><td>Avvia tutto</td></tr>
+<tr><td><code>docker-compose down</code></td><td>Ferma tutto</td></tr>
+<tr><td><code>docker-compose logs -f</code></td><td>Vedi errori in tempo reale</td></tr>
+<tr><td><code>docker restart pizzeria_backend</code></td><td>Riavvio solo backend</td></tr>
+<tr><td><code>docker ps</code></td><td>Verifica container attivi</td></tr>
+</table>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>8. 🗄️ DATABASE (struttura completa)</h2>
+
+<h3>8.1 Credenziali</h3>
+<table>
+<tr><th>Tipo</th><th>Username</th><th>Password</th></tr>
+<tr><td>Root</td><td>root</td><td>root123</td></tr>
+<tr><td>User</td><td>pizzeria_user</td><td>pizza123</td></tr>
+</table>
+
+<h3>8.2 Tabella: stati_tavoli (la più importante)</h3>
+<table>
+<tr><th>Campo</th><th>Tipo</th><th>Descrizione</th></tr>
+<tr><td>tavolo_id</td><td>INT</td><td>Numero tavolo (1-60)</td></tr>
+<tr><td>stato</td><td>VARCHAR(20)</td><td>in_attesa / lavorazione / pronto / non_disponibile</td></tr>
+<tr><td>tempo_minuti</td><td>INT</td><td>Minuti (solo per lavorazione)</td></tr>
+<tr><td>ultimo_aggiornamento</td><td>TIMESTAMP</td><td>Data/ora ultima modifica</td></tr>
+</table>
+
+<h3>8.3 Tabella: storico_stati (cronologia)</h3>
+<table>
+<tr><th>Campo</th><th>Tipo</th><th>Descrizione</th></tr>
+<tr><td>id</td><td>INT</td><td>Progressivo</td></tr>
+<tr><td>tavolo_id</td><td>INT</td><td>Numero tavolo</td></tr>
+<tr><td>stato</td><td>VARCHAR(20)</td><td>Stato cambiato</td></tr>
+<tr><td>tempo_minuti</td><td>INT</td><td>Minuti (se lavorazione)</td></tr>
+<tr><td>data_ora</td><td>TIMESTAMP</td><td>Data/ora del cambio</td></tr>
+</table>
+
+<h3>8.4 Tabella: tavoli (60 record)</h3>
+<table><tr><th>Campo</th><th>Tipo</th><th>Descrizione</th></tr>
+<tr><td>id</td><td>INT</td><td>Numero tavolo (1-60)</td></tr>
+<tr><td>nome</td><td>VARCHAR(10)</td><td>"Tavolo 1", "Tavolo 2", ...</td></tr>
+<tr><td>qr_token</td><td>VARCHAR(100)</td><td>(opzionale) per QR code</td></tr>
+</table>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>9. 🔌 API BACKEND (per sviluppatori)</h2>
+
+<h3>9.1 Stati tavoli</h3>
+<table>
+<tr><th>Metodo</th><th>Endpoint</th><th>Descrizione</th></tr>
+<tr><td>GET</td><td>/api/stati-tavoli</td><td>Stato di tutti i 60 tavoli</td></tr>
+<tr><td>PUT</td><td>/api/stati-tavoli/:id/con-storico</td><td>Aggiorna stato e registra storico</td></tr>
+<tr><td>GET</td><td>/api/storico-tutti</td><td>Tutto lo storico (ultimi 200)</td></tr>
+</table>
+
+<h3>9.2 Esempi pratici</h3>
+<p><strong>Ottenere stato di tutti i tavoli:</strong></p>
+<pre>curl http://localhost:3000/api/stati-tavoli</pre>
+
+<p><strong>Mettere tavolo 5 in lavorazione per 20 minuti:</strong></p>
+<pre>curl -X PUT http://localhost:3000/api/stati-tavoli/5/con-storico \
+  -H "Content-Type: application/json" \
+  -d '{"stato":"lavorazione","tempo_minuti":20}'</pre>
+
+<p><strong>Mettere tavolo 5 come pronto:</strong></p>
+<pre>curl -X PUT http://localhost:3000/api/stati-tavoli/5/con-storico \
+  -H "Content-Type: application/json" \
+  -d '{"stato":"pronto","tempo_minuti":null}'</pre>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>10. 💾 BACKUP E RIPRISTINO</h2>
+
+<h3>10.1 BACKUP del database (fare ogni giorno)</h3>
+<pre>cd /mnt/c/Users/Utente/Desktop
+docker exec pizzeria_mysql mysqldump -upizzeria_user -ppizza123 pizzeria > backup_db_$(date +%Y%m%d).sql</pre>
+
+<h3>10.2 BACKUP completo cartella (fare ogni settimana)</h3>
+<pre>cd /mnt/c/Users/Utente/Desktop
+tar -czvf PizzeriaFinale_backup_$(date +%Y%m%d).tar.gz PizzeriaFinale/</pre>
+
+<h3>10.3 RIPRISTINO database</h3>
+<pre>cat backup_db_20260101.sql | docker exec -i pizzeria_mysql mysql -upizzeria_user -ppizza123 pizzeria</pre>
+
+<h3>10.4 RIPRISTINO cartella completa</h3>
+<pre>cd /mnt/c/Users/Utente/Desktop
+tar -xzvf PizzeriaFinale_backup_20260101.tar.gz
+cd PizzeriaFinale
+docker-compose up -d</pre>
+
+<div class="note">
+<strong>📅 Consiglio:</strong> Metti un promemoria sul telefono per fare il backup del database ogni giorno alle 22:00.
+</div>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>11. 🔧 MANUTENZIONE ORDINARIA</h2>
+
+<h3>11.1 Ogni GIORNO (quando chiudi la pizzeria)</h3>
+<ul>
+<li>Fai il backup del database (comando sopra)</li>
+<li>Controlla che i container siano attivi: <code>docker ps</code></li>
+<li>Verifica che i log non abbiano errori: <code>docker-compose logs --tail=20</code></li>
+</ul>
+
+<h3>11.2 Ogni SETTIMANA (es. lunedì mattina)</h3>
+<ul>
+<li>Riavvia il sistema: <code>docker-compose restart</code></li>
+<li>Fai backup completo della cartella</li>
+<li>Pulisci lo storico se troppo grande: dal browser vai su STORICO → "PULISCI TUTTO LO STORICO"</li>
+</ul>
+
+<h3>11.3 Ogni MESE</h3>
+<ul>
+<li>Aggiorna i container: <code>docker-compose pull</code> poi <code>docker-compose up -d --build</code></li>
+<li>Verifica spazio su disco: <code>df -h</code> (Linux) o controlla il disco C: (Windows)</li>
+<li>Elimina backup vecchi (tieni solo ultimi 3 mesi)</li>
+</ul>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>12. 🚨 RISOLUZIONE PROBLEMI</h2>
+
+<table>
+<tr><th>Problema</th><th>Cosa fare</th></tr>
+<tr><td><strong>La pagina non si apre</strong></td><td>Verifica che Docker sia avviato → <code>docker ps</code><br>Riavvia: <code>docker-compose restart</code></td></tr>
+<tr><td><strong>"Connection refused"</strong></td><td>Container non partiti → <code>docker-compose up -d</code></td></tr>
+<tr><td><strong>I tavoli non si aggiornano</strong></td><td>Backend fermo → <code>docker restart pizzeria_backend</code></td></tr>
+<tr><td><strong>La voce non funziona</strong></td><td>Usa Chrome, Edge o Safari. Su iOS serve un tocco prima della voce.</td></tr>
+<tr><td><strong>La pagina è lenta</strong></td><td>Riavvia il sistema: <code>docker-compose restart</code></td></tr>
+<tr><td><strong>Porta 8080 già occupata</strong></td><td>Cambia porta in docker-compose.yml (es. 8081:80)</td></tr>
+<tr><td><strong>Errore "database is locked"</strong></td><td>MySQL bloccato → <code>docker restart pizzeria_mysql</code></td></tr>
+</table>
+
+<h3>12.1 Verifica rapida dello stato</h3>
+<pre>docker ps
+docker logs pizzeria_backend --tail 10
+curl http://localhost:3000/api/stati-tavoli | head -c 200</pre>
+
+<h3>12.2 Ricostruzione completa (se tutto non funziona)</h3>
+<pre>docker-compose down
+docker-compose up -d --build</pre>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>13. 🔧 PERSONALIZZAZIONI COMUNI</h2>
+
+<h3>13.1 Cambiare il testo della voce</h3>
+<p>Modifica in <code>frontend/cucina.html</code> intorno alla riga 230:</p>
+<pre>if (stato === 'pronto') parla(`Tavolo ${id}, pronto da portare`);</pre>
+<p>Cambia con quello che vuoi, es:</p>
+<pre>if (stato === 'pronto') parla(`Il tavolo ${id} è pronto! Venite a ritirare`);</pre>
+
+<h3>13.2 Cambiare i colori dei tavoli</h3>
+<p>Modifica in <code>frontend/cucina.html</code> i CSS:</p>
+<pre>.stato-pronto { background: #28a745; }  /* Verde */
+.stato-lavorazione { background: #fd7e14; }  /* Arancione */
+.stato-non-disponibile { background: #dc3545; }  /* Rosso */
+.stato-attesa { background: #6c757d; }  /* Grigio */</pre>
+
+<h3>13.3 Aggiungere un nuovo tempo per "In lavorazione"</h3>
+<p>Modifica in <code>frontend/cucina.html</code> la sezione dei bottoni:</p>
+<pre>&lt;button class="btn btn-tempo" onclick="azioneMassivaConTempo('lavorazione', 15)"&gt;15 min&lt;/button&gt;</pre>
+
+<h3>13.4 Cambiare IP del server (se cambia rete)</h3>
+<p>Modifica in <strong>TUTTI e 3 i file HTML</strong> la riga:</p>
+<pre>let API_URL = 'http://' + window.location.hostname + ':3000';</pre>
+<p>Sostituisci con l'IP fisso:</p>
+<pre>let API_URL = 'http://192.168.1.100:3000';</pre>
+
+<h3>13.5 Aumentare il numero di tavoli (es. da 60 a 80)</h3>
+<pre>for i in $(seq 61 80); do
+  docker exec -i pizzeria_mysql mysql -upizzeria_user -ppizza123 -e \
+  "USE pizzeria; INSERT INTO tavoli (id, nome) VALUES ($i, 'Tavolo $i');"
+  docker exec -i pizzeria_mysql mysql -upizzeria_user -ppizza123 -e \
+  "USE pizzeria; INSERT INTO stati_tavoli (tavolo_id, stato) VALUES ($i, 'in_attesa');"
+done</pre>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>14. 💻 HARDWARE CONSIGLIATO</h2>
+
+<h3>14.1 Computer server (dove gira Docker)</h3>
+<table>
+<tr><th>Componente</th><th>Minimo</th><th>Consigliato</th></tr>
+<tr><td>CPU</td><td>2 core</td><td>4 core (Intel i5 / AMD Ryzen 5)</td></tr>
+<tr><td>RAM</td><td>4 GB</td><td>8 GB</td></tr>
+<tr><td>Storage</td><td>20 GB</td><td>50 GB SSD</td></tr>
+<tr><td>Sistema</td><td>Windows 10/11, Linux, macOS</td><td>Windows 11 o Ubuntu 22.04</td></tr>
+</table>
+
+<h3>14.2 Tablet cucina (touch)</h3>
+<ul>
+<li>Dimensione: 15" - 21" (minimo 10" se budget stretto)</li>
+<li>Touch capacitivo (come tablet normale)</li>
+<li>Risoluzione: 1280x720 minima</li>
+<li>Esempi: Amazon Fire HD 10, Samsung Tab, Lenovo Tab, monitor touch USB</li>
+</ul>
+
+<h3>14.3 Schermo cassa (monitor)</h3>
+<ul>
+<li>Dimensione: 15" - 21"</li>
+<li>Touch NON necessario (sola lettura)</li>
+<li>Qualsiasi monitor PC va bene</li>
+</ul>
+
+<h3>14.4 Rete</h3>
+<ul>
+<li>LAN cablata per stabilità (consigliata per il server)</li>
+<li>WiFi per tablet (5 GHz per minori interferenze)</li>
+</ul>
+
+<hr>
+
+<!-- ============================================ -->
+<h2>15. 📋 APPENDICE: COMANDI RAPIDI</h2>
+
+<h3>15.1 Comandi più usati (stampali e tienili vicino al PC)</h3>
+<pre>
+# AVVIARE IL SISTEMA
+cd /mnt/c/Users/Utente/Desktop/PizzeriaFinale
+docker-compose up -d
+
+# FERMARE IL SISTEMA
+docker-compose down
+
+# RIAVVIARE DOPO MODIFICHE
+docker-compose down && docker-compose up -d --build
+
+# VEDERE LOG (ERRORI)
+docker-compose logs -f
+
+# RIAVVIARE SOLO BACKEND (se tavoli non si aggiornano)
+docker restart pizzeria_backend
+
+# BACKUP DATABASE
+cd /mnt/c/Users/Utente/Desktop
+docker exec pizzeria_mysql mysqldump -upizzeria_user -ppizza123 pizzeria > backup_db_$(date +%Y%m%d).sql
+
+# VERIFICARE CONTAINER ATTIVI
+docker ps
+</pre>
+
+<h3>15.2 URL per il browser</h3>
+<pre>
+CUCINA (touch):  http://IP:8080/cucina.html
+CASSA (monitor): http://IP:8080/cassa.html
+STORICO:         http://IP:8080/storico.html
+</pre>
+
+<h3>15.3 Credenziali (salva in posto sicuro)</h3>
+<pre>
+MySQL utilizzatore: pizzeria_user
+MySQL password: pizza123
+Database nome: pizzeria
+</pre>
+
+<hr>
+
+<div class="success">
+<strong>✅ DOCUMENTAZIONE COMPLETA</strong><br>
+Questa documentazione contiene TUTTO quello che serve per gestire, manutenere e personalizzare il sistema Pizzeria POS.<br><br>
+Se tra un anno dovrai ricordare qualcosa, apri questo PDF e trovi tutto.
+</div>
+
+<hr>
+<p><em>Documentazione generata il: Aprile 2026 | Versione: DEFINITIVA 1.0</em></p>
+</body>
+</html>

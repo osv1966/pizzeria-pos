@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cucina - Pizzeria POS</title>
+    <style>
+        *{box-sizing:border-box}
+        body{background:#2c3e50;padding:15px;margin:0;font-family:'Segoe UI',Arial}
+        h1{color:#ff6b00;text-align:center;margin:0 0 15px 0;font-size:24px}
+        
+        .btn-voce {
+            background: #ff6b00; color: white; border: none; 
+            border-radius: 20px; padding: 8px 20px; font-size: 14px; 
+            cursor: pointer; margin-bottom: 15px;
+        }
+        .btn-voce.attivo { background: #28a745; }
+        
+        .stats{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+        .stat-card{background:#34495e;padding:8px 15px;border-radius:20px;color:white;text-align:center}
+        .stat-card span{font-size:24px;font-weight:bold;display:block}
+        
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;margin-bottom:20px}
+        .ordine {
+            background:#34495e; border-radius:16px; padding:15px; 
+            border:2px solid transparent; transition:0.2s;
+            cursor:pointer;
+        }
+        .ordine.completato {
+            border:4px solid #00ff00 !important;
+            box-shadow:0 0 15px rgba(0,255,0,0.5);
+            animation:pulse 0.5s ease;
+        }
+        @keyframes pulse {
+            0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)}
+        }
+        .ordine.selected { border-color:#ff6b00; background:#3d566e; }
+        
+        .tavolo-numero { font-size:24px; font-weight:bold; color:#ff6b00; margin-bottom:10px; }
+        .prodotti { font-size:14px; color:white; margin:10px 0; }
+        .badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:12px; margin-top:10px; }
+        .badge-attesa { background:#3498db; }
+        .badge-completato { background:#28a745; }
+        
+        .azione-panel {
+            position:fixed; bottom:0; left:0; right:0; background:#34495e;
+            padding:15px; border-top:2px solid #ff6b00; display:none;
+            z-index:1000;
+        }
+        .btn-group{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+        .btn{padding:12px 20px;border:none;border-radius:40px;font-size:16px;font-weight:bold;cursor:pointer;flex:1;min-width:90px}
+        .btn-verde{background:#28a745;color:white}
+        .btn-rosso{background:#dc3545;color:white}
+        .btn-grigio{background:#6c757d;color:white}
+        
+        .storico-panel {
+            position:fixed; top:80px; right:10px; width:250px;
+            background:#34495e; border-radius:10px; padding:10px;
+            color:white; font-size:12px; max-height:350px;
+            overflow-y:auto; z-index:999; border:1px solid #ff6b00;
+        }
+        .storico-panel h3 { margin:0 0 8px 0; font-size:14px; text-align:center; color:#ff6b00; }
+        .storico-item { padding:6px; border-bottom:1px solid #555; font-size:11px; }
+        
+        .info-selezione{color:#ddd;text-align:center;margin-bottom:12px}
+    </style>
+</head>
+<body>
+    <h1>👨‍🍳 CUCINA</h1>
+    
+    <div style="text-align:center;">
+        <button id="btnVoce" class="btn-voce">🔊 Attiva Sintesi Vocale</button>
+    </div>
+    
+    <div class="stats">
+        <div class="stat-card">📋 In Attesa<br><span id="stat-attesa">0</span></div>
+        <div class="stat-card">✅ Completati<br><span id="stat-completati">0</span></div>
+    </div>
+    
+    <div id="griglia-ordini" class="griglia"></div>
+    
+    <div id="azionePanel" class="azione-panel">
+        <div class="info-selezione" id="info-selezione">Ordine selezionato: -</div>
+        <div class="btn-group">
+            <button class="btn btn-verde" onclick="completaOrdine()">✅ Completa Ordine</button>
+            <button class="btn btn-grigio" onclick="nascondiPanel()">❌ Annulla</button>
+        </div>
+    </div>
+    
+    <div id="storicoPanel" class="storico-panel"></div>
+
+    <script>
+        let ordineSelezionato = null;
+        let voceAbilitata = false;
+        let storico = JSON.parse(localStorage.getItem('storicoCucina') || '[]');
+        
+        // Carica ordini dalla cucina
+        async function caricaOrdini() {
+            try {
+                const res = await fetch('/api/ordini/cucina');
+                if(!res.ok) throw new Error('Errore caricamento');
+                const ordini = await res.json();
+                
+                let html = '';
+                let attesa = 0;
+                let completati = 0;
+                
+                ordini.forEach(ordine => {
+                    const isCompleted = localStorage.getItem(`ordine_${ordine.id}_completato`) === 'true';
+                    const statusClass = isCompleted ? 'completato' : '';
+                    const selectedClass = ordineSelezionato === ordine.id ? 'selected' : '';
+                    
+                    html += `
+                        <div class="ordine ${statusClass} ${selectedClass}" onclick="selezionaOrdine(${ordine.id})">
+                            <div class="tavolo-numero">🍽️ Tavolo ${ordine.tavolo_numero}</div>
+                            <div class="prodotti">📦 ${ordine.prodotti_dettaglio || 'Prodotti vari'}</div>
+                            <div class="badge ${isCompleted ? 'badge-completato' : 'badge-attesa'}">
+                                ${isCompleted ? '✅ Completato' : '⏳ In attesa'}
+                            </div>
+                            <div style="font-size:10px; color:#aaa; margin-top:8px;">🕐 ${new Date(ordine.data_ora).toLocaleTimeString()}</div>
+                        </div>
+                    `;
+                    
+                    if(isCompleted) completati++;
+                    else attesa++;
+                });
+                
+                document.getElementById('griglia-ordini').innerHTML = html || '<div style="color:white;text-align:center;">Nessun ordine in cucina</div>';
+                document.getElementById('stat-attesa').innerText = attesa;
+                document.getElementById('stat-completati').innerText = completati;
+                
+                // Controlla nuovi ordini completati per voce e storico
+                ordini.forEach(ordine => {
+                    const isCompleted = localStorage.getItem(`ordine_${ordine.id}_completato`) === 'true';
+                    if(isCompleted) {
+                        aggiungiAStorico(ordine);
+                    }
+                });
+                
+            } catch(e) {
+                console.error('Errore:', e);
+                document.getElementById('griglia-ordini').innerHTML = '<div style="color:red;text-align:center;">Errore caricamento ordini</div>';
+            }
+        }
+        
+        function selezionaOrdine(id) {
+            ordineSelezionato = id;
+            document.getElementById('info-selezione').innerHTML = `Ordine #${id} selezionato`;
+            document.getElementById('azionePanel').style.display = 'block';
+            caricaOrdini();
+        }
+        
+        async function completaOrdine() {
+            if(!ordineSelezionato) return;
+            
+            try {
+                const res = await fetch(`/api/ordini/${ordineSelezionato}/completa`, {
+                    method: 'PUT',
+                    headers: {'Content-Type':'application/json'}
+                });
+                
+                if(res.ok) {
+                    localStorage.setItem(`ordine_${ordineSelezionato}_completato`, 'true');
+                    
+                    if(voceAbilitata) {
+                        const msg = new SpeechSynthesisUtterance(`Ordine ${ordineSelezionato} completato`);
+                        msg.lang = 'it-IT';
+                        window.speechSynthesis.speak(msg);
+                    }
+                    
+                    ordineSelezionato = null;
+                    nascondiPanel();
+                    caricaOrdini();
+                }
+            } catch(e) {
+                console.error('Errore completamento:', e);
+            }
+        }
+        
+        function aggiungiAStorico(ordine) {
+            const esiste = storico.some(item => item.id === ordine.id);
+            if(!esiste) {
+                storico.unshift({
+                    id: ordine.id,
+                    tavolo: ordine.tavolo_numero,
+                    prodotti: ordine.prodotti_dettaglio,
+                    timestamp: new Date().toLocaleTimeString()
+                });
+                if(storico.length > 20) storico.pop();
+                localStorage.setItem('storicoCucina', JSON.stringify(storico));
+                aggiornaStorico();
+            }
+        }
+        
+        function aggiornaStorico() {
+            let html = '<h3>📜 Storico Completati</h3>';
+            if(storico.length === 0) {
+                html += '<div style="text-align:center;color:#999;">Nessun ordine completato</div>';
+            }
+            storico.forEach(item => {
+                html += `<div class="storico-item">🍽️ Tavolo ${item.tavolo} - Ordine #${item.id}<br>🕐 ${item.timestamp}</div>`;
+            });
+            document.getElementById('storicoPanel').innerHTML = html;
+        }
+        
+        function nascondiPanel() {
+            document.getElementById('azionePanel').style.display = 'none';
+            ordineSelezionato = null;
+        }
+        
+        // Attivazione voce
+        document.getElementById('btnVoce').onclick = () => {
+            voceAbilitata = true;
+            const msg = new SpeechSynthesisUtterance("Sintesi vocale attivata");
+            msg.lang = 'it-IT';
+            window.speechSynthesis.speak(msg);
+            document.getElementById('btnVoce').classList.add('attivo');
+            document.getElementById('btnVoce').innerHTML = '🔊 Voce Attiva';
+        };
+        
+        // Avvio
+        aggiornaStorico();
+        caricaOrdini();
+        setInterval(caricaOrdini, 5000);
+    </script>
+</body>
+</html>

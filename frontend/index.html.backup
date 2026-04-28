@@ -1,0 +1,363 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizzeria POS</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial; padding: 15px; background: #f0f0f0; margin: 0; }
+        button { padding: 12px; margin: 5px; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; }
+        .mode-btn { background: #333; color: white; padding: 12px; margin: 5px; flex: 1; }
+        .mode-btn.active { background: #ff6b00; }
+        .zona-btn, .tavolo-btn, .reparto-btn { background: #28a745; color: white; }
+        .active { background: #ff6b00 !important; }
+        .prodotti { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 15px 0; }
+        .prodotto { background: white; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .carrello { background: white; padding: 15px; border-radius: 10px; margin-top: 20px; }
+        .totale { font-size: 24px; font-weight: bold; text-align: right; color: #ff6b00; }
+        .btn-invia { background: #28a745; color: white; width: 100%; padding: 15px; font-size: 18px; margin-top: 15px; }
+        .ordine-card { background: white; padding: 15px; margin: 10px 0; border-radius: 10px; border-left: 5px solid #ff6b00; }
+        .tavoli-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 10px 0; }
+        .tavolo-btn { padding: 12px; font-size: 16px; font-weight: bold; }
+        .admin-panel { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; border-top: 2px solid #ff6b00; display: none; z-index: 1000; max-height: 70%; overflow-y: auto; }
+        input, select { width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; border: 1px solid #ddd; }
+        .btn-danger { background: #dc3545; }
+        .nome-cliente-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; }
+        .btn-pulisci { background: #dc3545; color: white; padding: 12px; margin-bottom: 15px; width: 100%; }
+    </style>
+</head>
+<body>
+    <div style="display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap;">
+        <button class="mode-btn active" onclick="showView('cassa')">🍕 CASSA</button>
+        <button class="mode-btn" onclick="showView('cucina')">👨‍🍳 CUCINA</button>
+        <button class="mode-btn" onclick="showView('storico')">📜 STORICO</button>
+        <button class="mode-btn" style="background:#dc3545" onclick="toggleAdmin()">⚙️ ADMIN</button>
+    </div>
+
+    <div id="view-cassa">
+        <h2>🍕 Pizzeria</h2>
+        
+        <div style="background:white; padding:15px; border-radius:10px; margin-bottom:15px;">
+            <h3>📍 Zona</h3>
+            <div>
+                <button class="zona-btn active" onclick="setZona('Sala', this)">🏠 Sala</button>
+                <button class="zona-btn" onclick="setZona('Dehor', this)">🌳 Dehor</button>
+                <button class="zona-btn" onclick="setZona('Bar', this)">🍷 Bar</button>
+            </div>
+        </div>
+
+        <div style="background:white; padding:15px; border-radius:10px; margin-bottom:15px;">
+            <h3>🪑 Tavolo</h3>
+            <div class="tavoli-grid" id="tavoli-container"></div>
+            <input type="text" id="nome_cliente" class="nome-cliente-input" placeholder="👤 Nome cliente (opzionale)">
+        </div>
+
+        <div style="background:white; padding:15px; border-radius:10px; margin-bottom:15px;">
+            <h3>🍽️ Reparto</h3>
+            <div>
+                <button class="reparto-btn active" onclick="setReparto('cucina', this)">🍳 CUCINA</button>
+                <button class="reparto-btn" onclick="setReparto('friggitoria', this)">🍟 FRIGGITORIA</button>
+                <button class="reparto-btn" onclick="setReparto('bar', this)">🍷 BAR</button>
+            </div>
+        </div>
+
+        <h3>📋 Prodotti</h3>
+        <div id="prodotti-container"></div>
+
+        <div class="carrello">
+            <h3>🛒 Carrello</h3>
+            <div id="carrello-lista"></div>
+            <div class="totale" id="totale">€0.00</div>
+            <button class="btn-invia" onclick="inviaOrdine()">✅ INVIA ORDINE</button>
+        </div>
+    </div>
+
+    <div id="view-cucina" style="display:none;">
+        <h2>👨‍🍳 Ordini in arrivo</h2>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button class="reparto-btn active" onclick="setFiltro('cucina', this)">🍳 CUCINA</button>
+            <button class="reparto-btn" onclick="setFiltro('friggitoria', this)">🍟 FRIGGITORIA</button>
+            <button class="reparto-btn" onclick="setFiltro('bar', this)">🍷 BAR</button>
+        </div>
+        <div id="ordini-container"></div>
+    </div>
+
+    <div id="view-storico" style="display:none;">
+        <h2>📜 Storico ordini</h2>
+        <button class="btn-pulisci" onclick="pulisciStorico()">🗑️ PULISCI TUTTO LO STORICO</button>
+        <div id="storico-container"></div>
+    </div>
+
+    <div id="admin-panel" class="admin-panel">
+        <h3>⚙️ Gestione Prodotti</h3>
+        <div id="prodotti-admin-list" style="max-height:200px; overflow-y:auto;"></div>
+        <hr>
+        <h4>➕ Nuovo prodotto</h4>
+        <input type="text" id="new-nome" placeholder="Nome prodotto">
+        <input type="number" id="new-prezzo" placeholder="Prezzo" step="0.5">
+        <select id="new-tipo">
+            <option value="cucina">Cucina</option>
+            <option value="friggitoria">Friggitoria</option>
+            <option value="bar">Bar</option>
+        </select>
+        <button onclick="aggiungiProdotto()" style="background:#28a745">➕ Aggiungi</button>
+        <button onclick="toggleAdmin()" class="btn-danger">❌ Chiudi</button>
+    </div>
+
+    <script>
+        let API_URL = 'http://' + window.location.hostname + ':3000';
+        let zonaSelezionata = 'Sala';
+        let tavoloSelezionato = 1;
+        let repartoCorrente = 'cucina';
+        let filtroCorrente = 'cucina';
+        let carrello = [];
+        let prodotti = [];
+
+        function parla(testo) {
+            let msg = new SpeechSynthesisUtterance(testo);
+            msg.lang = 'it-IT';
+            speechSynthesis.cancel();
+            speechSynthesis.speak(msg);
+        }
+
+        function generaTavoli() {
+            let html = '';
+            for (let i = 1; i <= 15; i++) {
+                html += `<button class="tavolo-btn" onclick="setTavolo(${i}, this)">${i}</button>`;
+            }
+            document.getElementById('tavoli-container').innerHTML = html;
+        }
+
+        function setTavolo(num, btn) {
+            tavoloSelezionato = num;
+            document.querySelectorAll('.tavolo-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function setZona(zona, btn) {
+            zonaSelezionata = zona;
+            document.querySelectorAll('.zona-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function setReparto(reparto, btn) {
+            repartoCorrente = reparto;
+            document.querySelectorAll('#view-cassa .reparto-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            caricaProdotti();
+        }
+
+        async function caricaProdotti() {
+            try {
+                let res = await fetch(API_URL + '/api/prodotti');
+                prodotti = await res.json();
+                let html = '<div class="prodotti">';
+                let filtrati = prodotti.filter(p => p.tipo === repartoCorrente);
+                filtrati.forEach(p => {
+                    html += `<div class="prodotto" onclick="aggiungiAlCarrello(${p.id}, '${p.nome}', ${p.prezzo})">
+                                <strong>${p.nome}</strong><br>€${p.prezzo}
+                            </div>`;
+                });
+                html += '</div>';
+                document.getElementById('prodotti-container').innerHTML = html;
+            } catch(e) {
+                document.getElementById('prodotti-container').innerHTML = '<div style="color:red">❌ Errore</div>';
+            }
+        }
+
+        function aggiungiAlCarrello(id, nome, prezzo) {
+            carrello.push({ id, nome, prezzo });
+            aggiornaCarrello();
+        }
+
+        function aggiornaCarrello() {
+            let totale = 0;
+            let html = '';
+            carrello.forEach((item, i) => {
+                totale += item.prezzo;
+                html += `<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #ddd;">
+                            ${item.nome} - €${item.prezzo}
+                            <button onclick="rimuoviDalCarrello(${i})" style="background:#dc3545; width:auto; padding:5px 10px;">❌</button>
+                        </div>`;
+            });
+            document.getElementById('carrello-lista').innerHTML = html || '<div>📦 Carrello vuoto</div>';
+            document.getElementById('totale').innerHTML = `€${totale.toFixed(2)}`;
+        }
+
+        function rimuoviDalCarrello(i) {
+            carrello.splice(i, 1);
+            aggiornaCarrello();
+        }
+
+        async function inviaOrdine() {
+            if (carrello.length === 0) {
+                alert('⚠️ Aggiungi prodotti!');
+                return;
+            }
+
+            let nomeCliente = document.getElementById('nome_cliente').value;
+
+            let ordine = {
+                tavolo: tavoloSelezionato,
+                zona: zonaSelezionata,
+                nome_cliente: nomeCliente,
+                reparto: repartoCorrente,
+                prodotti: carrello
+            };
+
+            try {
+                let res = await fetch(API_URL + '/api/ordini', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(ordine)
+                });
+                let data = await res.json();
+                
+                if (data.success) {
+                    let msg = `✅ Ordine inviato! Tavolo ${tavoloSelezionato}`;
+                    if (nomeCliente) msg += ` - ${nomeCliente}`;
+                    alert(msg);
+                    carrello = [];
+                    aggiornaCarrello();
+                    document.getElementById('nome_cliente').value = '';
+                } else {
+                    alert('❌ Errore');
+                }
+            } catch(e) {
+                alert('❌ Errore: ' + e.message);
+            }
+        }
+
+        async function caricaOrdini() {
+            try {
+                let res = await fetch(API_URL + '/api/ordini/' + filtroCorrente);
+                let ordini = await res.json();
+                let html = '';
+                ordini.forEach(o => {
+                    let nomeDisplay = o.nome_cliente ? ` 👤 ${o.nome_cliente}` : '';
+                    html += `<div class="ordine-card">
+                                <strong>🍽️ Tavolo ${o.tavolo_numero} - ${o.zona}${nomeDisplay}</strong><br>
+                                📦 ${o.prodotti_dettaglio || ''}<br>
+                                💰 <strong>€${o.totale}</strong><br>
+                                <button onclick="completaOrdine(${o.id}, ${o.tavolo_numero})" style="background:#28a745; margin-top:10px;">✅ COMPLETA</button>
+                            </div>`;
+                });
+                document.getElementById('ordini-container').innerHTML = html || '<div class="ordine-card">📭 Nessun ordine</div>';
+            } catch(e) {
+                document.getElementById('ordini-container').innerHTML = '<div class="ordine-card">❌ Errore</div>';
+            }
+        }
+
+        async function completaOrdine(id, tavolo) {
+            await fetch(API_URL + '/api/ordini/' + id + '/completa', { method: 'PUT' });
+            parla(`Tavolo ${tavolo}, ordine pronto`);
+            caricaOrdini();
+            caricaStorico();
+        }
+
+        async function caricaStorico() {
+            try {
+                let res = await fetch(API_URL + '/api/storico');
+                let ordini = await res.json();
+                let html = '';
+                ordini.forEach(o => {
+                    let nomeDisplay = o.nome_cliente ? ` 👤 ${o.nome_cliente}` : '';
+                    html += `<div class="ordine-card" style="border-left-color:#28a745;">
+                                <strong>Tavolo ${o.tavolo_numero} - ${o.zona}${nomeDisplay}</strong><br>
+                                ${o.prodotti_dettaglio || ''}<br>
+                                💰 €${o.totale}<br>
+                                <small>${new Date(o.data_ora).toLocaleString()}</small>
+                            </div>`;
+                });
+                document.getElementById('storico-container').innerHTML = html || '<div class="ordine-card">📭 Nessuno storico</div>';
+            } catch(e) {
+                document.getElementById('storico-container').innerHTML = '<div class="ordine-card">❌ Errore</div>';
+            }
+        }
+
+        async function pulisciStorico() {
+            if (!confirm('⚠️ ATTENZIONE! Eliminerai TUTTO lo storico. Sei sicuro?')) return;
+            try {
+                let res = await fetch(API_URL + '/api/storico/pulisci', { method: 'DELETE' });
+                let data = await res.json();
+                if (data.success) {
+                    alert(`✅ Eliminati ${data.eliminati} ordini dallo storico`);
+                    caricaStorico();
+                }
+            } catch(e) {
+                alert('❌ Errore: ' + e.message);
+            }
+        }
+
+        function setFiltro(reparto, btn) {
+            filtroCorrente = reparto;
+            document.querySelectorAll('#view-cucina .reparto-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            caricaOrdini();
+        }
+
+        function showView(view) {
+            document.getElementById('view-cassa').style.display = view === 'cassa' ? 'block' : 'none';
+            document.getElementById('view-cucina').style.display = view === 'cucina' ? 'block' : 'none';
+            document.getElementById('view-storico').style.display = view === 'storico' ? 'block' : 'none';
+            
+            if (view === 'cucina') caricaOrdini();
+            if (view === 'storico') caricaStorico();
+        }
+
+        function toggleAdmin() {
+            let panel = document.getElementById('admin-panel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            if (panel.style.display === 'block') caricaProdottiAdmin();
+        }
+
+        async function caricaProdottiAdmin() {
+            let res = await fetch(API_URL + '/api/admin/prodotti');
+            let prods = await res.json();
+            let html = '';
+            prods.forEach(p => {
+                html += `<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #ddd;">
+                            <span><strong>${p.nome}</strong> - €${p.prezzo} (${p.tipo})</span>
+                            <button onclick="eliminaProdotto(${p.id})" class="btn-danger" style="width:auto; padding:5px 10px;">🗑️</button>
+                        </div>`;
+            });
+            document.getElementById('prodotti-admin-list').innerHTML = html;
+        }
+
+        async function aggiungiProdotto() {
+            let nome = document.getElementById('new-nome').value;
+            let prezzo = document.getElementById('new-prezzo').value;
+            let tipo = document.getElementById('new-tipo').value;
+            
+            if (!nome || !prezzo) {
+                alert('Inserisci nome e prezzo');
+                return;
+            }
+            
+            await fetch(API_URL + '/api/admin/prodotti', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome, prezzo: parseFloat(prezzo), tipo })
+            });
+            alert('✅ Prodotto aggiunto!');
+            document.getElementById('new-nome').value = '';
+            document.getElementById('new-prezzo').value = '';
+            caricaProdottiAdmin();
+            caricaProdotti();
+        }
+
+        async function eliminaProdotto(id) {
+            if (!confirm('Eliminare?')) return;
+            await fetch(API_URL + '/api/admin/prodotti/' + id, { method: 'DELETE' });
+            alert('✅ Eliminato');
+            caricaProdottiAdmin();
+            caricaProdotti();
+        }
+
+        generaTavoli();
+        caricaProdotti();
+        setInterval(() => { if (document.getElementById('view-cucina').style.display !== 'none') caricaOrdini(); }, 5000);
+    </script>
+</body>
+</html>

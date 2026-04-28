@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Cassa - Tutti i Reparti</title>
+    <style>
+        *{box-sizing:border-box}
+        body{background:#f0f2f5;padding:15px;margin:0;font-family:'Segoe UI',Arial}
+        h1{color:#333;text-align:center;font-size:28px;margin:0 0 15px 0}
+        .toolbar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+        .toolbar button{flex:1;padding:15px;border:none;border-radius:50px;font-size:16px;font-weight:bold;cursor:pointer}
+        .btn-reset{background:#ff6b00;color:white}
+        .btn-storico{background:#17a2b8;color:white}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:15px}
+        .tavolo{background:white;border-radius:20px;padding:15px;box-shadow:0 2px 10px rgba(0,0,0,0.1);transition:0.2s}
+        .numero{font-size:24px;font-weight:bold;text-align:center;border-bottom:1px solid #eee;padding-bottom:8px;margin-bottom:8px}
+        .reparto{background:#f8f9fa;border-radius:14px;padding:10px;margin:8px 0}
+        .reparto-titolo{font-weight:bold;font-size:13px;margin-bottom:6px}
+        .stato{font-size:13px;margin-top:4px}
+        .lavoro{color:#fd7e14;font-weight:bold}
+        .pronto{color:#28a745;font-weight:bold}
+        .attesa{color:#6c757d}
+        .non-disp{color:#dc3545;font-weight:bold}
+        .btn-group{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+        button.accetta{background:#28a745;color:white;border:none;border-radius:40px;padding:10px;font-size:14px;font-weight:bold;cursor:pointer}
+        button.declina{background:#dc3545;color:white;border:none;border-radius:40px;padding:10px;font-size:14px;font-weight:bold;cursor:pointer}
+        .bordo-verde{border:2px solid #28a745}
+        .count{font-size:11px;color:#28a745;margin-top:4px}
+        .footer{text-align:center;padding:20px;color:#666;font-size:12px}
+        @media(max-width:600px){.griglia{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}}
+    </style>
+</head>
+<body>
+    <h1>🍕 CASSA - STATO TAVOLI</h1>
+    <div class="toolbar">
+        <button class="btn-reset" onclick="resetTavoli()">🔄 RESET TAVOLI</button>
+        <button class="btn-storico" onclick="window.location.href='storico.html'">📜 STORICO</button>
+    </div>
+    <div class="griglia" id="griglia"></div>
+    <div class="footer">🔄 Aggiornamento ogni 5 secondi | Tocca ACCETTA o DECLINA</div>
+
+    <script>
+        let API_URL='http://192.168.1.61:3000';
+        
+        function calcolaMinutiRimasti(ultimo,minuti){
+            if(!ultimo||!minuti) return minuti||0;
+            let fine=new Date(new Date(ultimo).getTime()+minuti*60000);
+            let ora=new Date();
+            return Math.max(0,Math.ceil((fine-ora)/60000));
+        }
+        
+        function getStatoHTML(stato, tempo, ultimo, stato_cassa, isOwnTable){
+            let min=calcolaMinutiRimasti(ultimo,tempo);
+            let testo='', classe='', badge='', bottoni='', count='';
+            
+            if(stato_cassa==='accettato'){
+                testo='✅ ACCETTATO';
+                classe='pronto';
+                if(stato==='lavorazione') count=`<div class="count">⏱️ ${min}min</div>`;
+            } else if(stato_cassa==='declinato'){
+                testo='❌ DECLINATO';
+                classe='non-disp';
+            } else if(stato==='lavorazione'){
+                testo=`🔧 IN LAVORO`;
+                classe='lavoro';
+                count=`<div class="count">⏱️ ${min}min</div>`;
+                if(isOwnTable) bottoni=`<div class="btn-group"><button class="accetta" onclick="accettaReparto(${tavolo},'${reparto}')">✅ ACCETTA</button><button class="declina" onclick="declinaReparto(${tavolo},'${reparto}')">❌ DECLINA</button></div>`;
+            } else if(stato==='pronto'){
+                testo='✅ PRONTO';
+                classe='pronto';
+            } else if(stato==='non_disponibile'){
+                testo='❌ NON DISP';
+                classe='non-disp';
+            } else {
+                testo='⏳ IN ATTESA';
+                classe='attesa';
+            }
+            
+            return `<div class="stato ${classe}">${testo}</div>${count}${bottoni}`;
+        }
+        
+        async function carica(){
+            let res=await fetch(API_URL+'/api/stati-combinati');
+            let tavoli=await res.json();
+            let html='';
+            for(let t of tavoli){
+                html+=`<div class="tavolo">
+                    <div class="numero">🍽️ Tavolo ${t.tavolo_id}</div>
+                    <div class="reparto"><div class="reparto-titolo">🍕 PIZZERIA</div>${getStatoHTML(t.stato_pizzeria, t.tempo_pizzeria, t.ultimo_pizzeria, t.stato_cassa_pizzeria, true)}</div>
+                    <div class="reparto"><div class="reparto-titolo">🍔 CUCINA</div>${getStatoHTML(t.stato_cucina, t.tempo_cucina, t.ultimo_cucina, t.stato_cassa, true)}</div>
+                    <div class="reparto"><div class="reparto-titolo">🍟 FRIGGITORIA</div>${getStatoHTML(t.stato_friggitoria, t.tempo_friggitoria, t.ultimo_friggitoria, t.stato_cassa_friggitoria, true)}</div>
+                </div>`;
+            }
+            document.getElementById('griglia').innerHTML=html;
+        }
+        
+        async function accettaReparto(tavolo, reparto){
+            let endpoint = reparto==='cucina' ? 'cassa-rispondi' : `stati-${reparto}`;
+            await fetch(API_URL+'/api/'+endpoint+'/'+tavolo,{
+                method:'PUT',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({azione:'accetta'})
+            });
+            carica();
+        }
+        
+        async function declinaReparto(tavolo, reparto){
+            let endpoint = reparto==='cucina' ? 'cassa-rispondi' : `stati-${reparto}`;
+            await fetch(API_URL+'/api/'+endpoint+'/'+tavolo,{
+                method:'PUT',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({azione:'declina'})
+            });
+            carica();
+        }
+        
+        async function resetTavoli(){
+            if(!confirm('⚠️ Resettare tutti i 60 tavoli?')) return;
+            await fetch(API_URL+'/api/reset-tavoli',{method:'POST'});
+            carica();
+        }
+        
+        carica();
+        setInterval(carica,5000);
+    </script>
+</body>
+</html>
+EOF+
+EXIT()

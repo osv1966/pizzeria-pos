@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storico</title>
+    <style>
+        body{background:#f5f5f5;font-family:Arial;padding:20px}
+        h1{color:#333}
+        .filtri{background:white;padding:15px;border-radius:12px;margin-bottom:20px;display:flex;gap:15px;flex-wrap:wrap;align-items:center}
+        .filtri input,.filtri button{padding:10px;border-radius:8px;border:1px solid #ddd}
+        .filtri button{background:#ff6b00;color:white;border:none;cursor:pointer}
+        table{width:100%;border-collapse:collapse;background:white;border-radius:12px;overflow:hidden}
+        th{background:#ff6b00;color:white;padding:12px}
+        td{padding:10px;border-bottom:1px solid #ddd}
+        .btn-indietro{background:#6c757d;color:white;border:none;padding:10px 20px;border-radius:30px;margin-bottom:20px;cursor:pointer}
+    </style>
+</head>
+<body>
+    <button class="btn-indietro" onclick="window.location.href='cassa.html'">← INDIETRO</button>
+    <h1>📜 STORICO CAMBI DI STATO</h1>
+    
+    <div class="filtri">
+        <label>Da data:</label>
+        <input type="date" id="da_data">
+        <label>A data:</label>
+        <input type="date" id="a_data">
+        <button onclick="filtraStorico()">🔍 CERCA</button>
+        <button onclick="resetFiltro()">🗑️ RESET</button>
+    </div>
+    
+    <table id="tabella">
+        <thead><tr><th>ID</th><th>Tavolo</th><th>Stato</th><th>Tempo</th><th>Operatore</th><th>Data/Ora</th></tr></thead>
+        <tbody id="corpo"></tbody>
+    </table>
+
+    <script>
+        let datiCompleti = [];
+        
+        function caricaStorico() {
+            fetch('http://192.168.1.61:3000/api/storico-tutti')
+                .then(r=>r.json())
+                .then(data=>{
+                    datiCompleti = data;
+                    visualizza(datiCompleti);
+                });
+        }
+        
+        function visualizza(dati) {
+            let html = '';
+            for(let d of dati){
+                html+=`<tr>
+                    <td>${d.id}</td>
+                    <td>${d.tavolo_id}</td>
+                    <td>${d.stato}</td>
+                    <td>${d.tempo_minuti||'-'}</td>
+                    <td>${d.operatore||'-'}</td>
+                    <td>${new Date(d.data_ora).toLocaleString()}</td>
+                </tr>`;
+            }
+            document.getElementById('corpo').innerHTML = html || '<tr><td colspan="6">Nessun dato</td></tr>';
+        }
+        
+        function filtraStorico() {
+            let da = document.getElementById('da_data').value;
+            let a = document.getElementById('a_data').value;
+            
+            let filtrati = datiCompleti.filter(d => {
+                let data = new Date(d.data_ora);
+                if(da && new Date(da) > data) return false;
+                if(a && new Date(a) < data) return false;
+                return true;
+            });
+            visualizza(filtrati);
+        }
+        
+        function resetFiltro() {
+            document.getElementById('da_data').value = '';
+            document.getElementById('a_data').value = '';
+            visualizza(datiCompleti);
+        }
+        
+        caricaStorico();
+    </script>
+</body>
+</html>

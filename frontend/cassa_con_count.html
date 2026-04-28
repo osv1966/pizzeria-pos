@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Cassa</title>
+    <style>
+        *{box-sizing:border-box}
+        body{background:#f5f5f5;padding:15px;margin:0;font-family:'Segoe UI',Arial}
+        h1{color:#333;text-align:center;font-size:28px;margin:0 0 15px 0}
+        .toolbar{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap}
+        .toolbar button{flex:1;padding:15px;border:none;border-radius:50px;font-size:18px;font-weight:bold;cursor:pointer}
+        .btn-reset{background:#ff6b00;color:white}
+        .btn-storico{background:#17a2b8;color:white}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:15px}
+        .tavolo{background:white;border-radius:20px;padding:15px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+        .numero{font-size:24px;font-weight:bold;margin-bottom:12px;color:#333;text-align:center;border-bottom:1px solid #eee;padding-bottom:8px}
+        .reparto{background:#f8f9fa;border-radius:14px;padding:10px;margin:8px 0}
+        .reparto-titolo{font-weight:bold;font-size:13px;margin-bottom:6px}
+        .stato{font-size:13px;margin-top:4px}
+        .lavoro{color:#fd7e14;font-weight:bold}
+        .attesa{color:#6c757d}
+        .accettato-text{color:#28a745;font-weight:bold}
+        .btn-group{display:flex;gap:8px;margin-top:8px}
+        .btn-accetta{background:#28a745;color:white;border:none;border-radius:40px;padding:8px;font-size:12px;cursor:pointer;flex:1}
+        .btn-declina{background:#dc3545;color:white;border:none;border-radius:40px;padding:8px;font-size:12px;cursor:pointer;flex:1}
+        .bordo-verde{border:2px solid #28a745;box-shadow:0 0 5px #28a745}
+        .badge{background:#28a745;color:white;padding:2px 8px;border-radius:20px;font-size:11px;display:inline-block;margin-left:8px}
+        .footer{text-align:center;padding:20px;color:#666;font-size:12px}
+    </style>
+</head>
+<body>
+    <h1>🍕 CASSA - STATO TAVOLI</h1>
+    <div class="toolbar">
+        <button class="btn-reset" onclick="resetTavoli()">🔄 RESET</button>
+        <button class="btn-storico" onclick="window.location.href='storico.html'">📜 STORICO</button>
+    </div>
+    <div class="griglia" id="griglia"></div>
+    <div class="footer">🔄 Aggiornamento ogni 5 secondi</div>
+
+    <script>
+        let API_URL = 'http://192.168.1.61:3000';
+        
+        function calcolaMinutiRimasti(ultimoAgg, minutiTotali){
+            if(!ultimoAgg || !minutiTotali) return minutiTotali || 0;
+            let fine = new Date(new Date(ultimoAgg).getTime() + minutiTotali * 60000);
+            let ora = new Date();
+            return Math.max(0, Math.ceil((fine - ora) / 60000));
+        }
+        
+        async function carica() {
+            let res = await fetch(API_URL + '/api/stati-combinati');
+            let tavoli = await res.json();
+            let html = '';
+            for (let t of tavoli) {
+                let minP = calcolaMinutiRimasti(t.ultimo_pizzeria, t.tempo_pizzeria);
+                let minC = calcolaMinutiRimasti(t.ultimo_cucina, t.tempo_cucina);
+                let minF = calcolaMinutiRimasti(t.ultimo_friggitoria, t.tempo_friggitoria);
+                
+                // PIZZERIA
+                let pBorder = (t.stato_pizzeria === 'pronto') ? 'bordo-verde' : '';
+                let pStato = '';
+                let pBadge = '';
+                if(t.stato_pizzeria === 'lavorazione') pStato = `<span class="lavoro">🔧 ${minP}min</span>`;
+                else if(t.stato_pizzeria === 'pronto') { pStato = `<span class="accettato-text">✅ ACCETTATO</span>`; pBadge = '<span class="badge">✅ Accettato</span>'; }
+                else pStato = `<span class="attesa">⏳ In attesa</span>`;
+                
+                // CUCINA
+                let cBorder = (t.stato_cucina === 'pronto') ? 'bordo-verde' : '';
+                let cStato = '';
+                let cBadge = '';
+                if(t.stato_cucina === 'lavorazione') cStato = `<span class="lavoro">🔧 ${minC}min</span>`;
+                else if(t.stato_cucina === 'pronto') { cStato = `<span class="accettato-text">✅ ACCETTATO</span>`; cBadge = '<span class="badge">✅ Accettato</span>'; }
+                else cStato = `<span class="attesa">⏳ In attesa</span>`;
+                
+                // FRIGGITORIA
+                let fBorder = (t.stato_friggitoria === 'pronto') ? 'bordo-verde' : '';
+                let fStato = '';
+                let fBadge = '';
+                if(t.stato_friggitoria === 'lavorazione') fStato = `<span class="lavoro">🔧 ${minF}min</span>`;
+                else if(t.stato_friggitoria === 'pronto') { fStato = `<span class="accettato-text">✅ ACCETTATO</span>`; fBadge = '<span class="badge">✅ Accettato</span>'; }
+                else fStato = `<span class="attesa">⏳ In attesa</span>`;
+                
+                html += `<div class="tavolo">
+                    <div class="numero">🍽️ Tavolo ${t.tavolo_id}</div>
+                    
+                    <div class="reparto ${pBorder}">
+                        <div class="reparto-titolo">🍕 PIZZERIA</div>
+                        <div class="stato">${pStato} ${pBadge}</div>
+                        ${t.stato_pizzeria === 'lavorazione' ? `<div class="btn-group"><button class="btn-accetta" onclick="accettaReparto(${t.tavolo_id}, 'pizzeria')">✅ ACCETTA</button><button class="btn-declina" onclick="declinaReparto(${t.tavolo_id}, 'pizzeria')">❌ DECLINA</button></div>` : ''}
+                    </div>
+                    
+                    <div class="reparto ${cBorder}">
+                        <div class="reparto-titolo">🍔 CUCINA</div>
+                        <div class="stato">${cStato} ${cBadge}</div>
+                        ${t.stato_cucina === 'lavorazione' ? `<div class="btn-group"><button class="btn-accetta" onclick="accettaReparto(${t.tavolo_id}, 'cucina')">✅ ACCETTA</button><button class="btn-declina" onclick="declinaReparto(${t.tavolo_id}, 'cucina')">❌ DECLINA</button></div>` : ''}
+                    </div>
+                    
+                    <div class="reparto ${fBorder}">
+                        <div class="reparto-titolo">🍟 FRIGGITORIA</div>
+                        <div class="stato">${fStato} ${fBadge}</div>
+                        ${t.stato_friggitoria === 'lavorazione' ? `<div class="btn-group"><button class="btn-accetta" onclick="accettaReparto(${t.tavolo_id}, 'friggitoria')">✅ ACCETTA</button><button class="btn-declina" onclick="declinaReparto(${t.tavolo_id}, 'friggitoria')">❌ DECLINA</button></div>` : ''}
+                    </div>
+                </div>`;
+            }
+            document.getElementById('griglia').innerHTML = html;
+        }
+        
+        async function accettaReparto(tavolo, reparto) {
+            await fetch(API_URL + '/api/stati-' + reparto + '/' + tavolo, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stato: 'pronto', tempo_minuti: null })
+            });
+            carica();
+        }
+        
+        async function declinaReparto(tavolo, reparto) {
+            await fetch(API_URL + '/api/stati-' + reparto + '/' + tavolo, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stato: 'non_disponibile', tempo_minuti: null })
+            });
+            carica();
+        }
+        
+        async function resetTavoli() {
+            if(!confirm('⚠️ Resettare tutti i 60 tavoli?')) return;
+            await fetch(API_URL + '/api/reset-tavoli', { method: 'POST' });
+            location.reload();
+        }
+        
+        carica();
+        setInterval(carica, 5000);
+    </script>
+</body>
+</html>

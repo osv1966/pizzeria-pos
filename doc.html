@@ -1,0 +1,48 @@
+<html>
+<head><meta charset="UTF-8"><title>Documentazione</title></head>
+<body>
+<h1>PIZZERIA POS - DOCUMENTAZIONE TECNICA</h1>
+
+<h2>ARCHITETTURA</h2>
+<p>3 container Docker: mysql (porta 3306), backend (porta 3000), frontend (porta 8080)</p>
+
+<h2>COMANDI BASE</h2>
+<ul>
+<li>Avvio: docker-compose up -d</li>
+<li>Fermo: docker-compose down</li>
+<li>Riavvio: docker-compose down && docker-compose up -d --build</li>
+<li>Log: docker-compose logs -f</li>
+</ul>
+
+<h2>CREDENZIALI</h2>
+<ul>
+<li>MySQL user: pizzeria_user</li>
+<li>MySQL password: pizza123</li>
+<li>Database: pizzeria</li>
+</ul>
+
+<h2>URL ACCESSO</h2>
+<ul>
+<li>Cucina (touch): http://IP:8080/cucina.html</li>
+<li>Cassa (monitor): http://IP:8080/cassa.html</li>
+<li>Storico: http://IP:8080/storico.html</li>
+</ul>
+
+<h2>API PRINCIPALI</h2>
+<ul>
+<li>GET /api/stati-tavoli → stato 60 tavoli</li>
+<li>PUT /api/stati-tavoli/:id/con-storico → aggiorna stato</li>
+<li>GET /api/storico-tutti → storico cambi</li>
+</ul>
+
+<h2>STRUTTURA DATABASE</h2>
+<p>Tabelle: prodotti, categorie, ordini, dettagli_ordine, tavoli, stati_tavoli, storico_stati</p>
+
+<h2>RISOLUZIONE PROBLEMI</h2>
+<ul>
+<li>Connection refused: docker-compose restart</li>
+<li>Tavoli non si aggiornano: docker restart pizzeria_backend</li>
+<li>Porta occupata: cambiare porta in docker-compose.yml</li>
+</ul>
+</body>
+</html>

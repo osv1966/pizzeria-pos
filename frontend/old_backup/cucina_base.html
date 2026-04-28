@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cucina BASE</title>
+    <style>
+        body{background:#1e2a3a;color:white;font-family:Arial;padding:10px}
+        .griglia{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
+        .tavolo{background:#3498db;padding:10px;border-radius:8px;text-align:center;cursor:pointer}
+        .tavolo.selezionato{background:#ff6b00}
+        .tavolo.lavoro{background:#fd7e14}
+        .tavolo.pronto{background:#28a745}
+        button{margin:5px;padding:10px;border-radius:8px;border:none;cursor:pointer}
+        .pannello{position:fixed;bottom:0;left:0;right:0;background:#2c3e50;padding:10px;display:none}
+    </style>
+</head>
+<body>
+    <h2>👨‍🍳 CUCINA</h2>
+    <div class="griglia" id="griglia"></div>
+    <div class="pannello" id="pannello">
+        <button onclick="setStato('pronto')">✅ PRONTO</button>
+        <button onclick="setStato('lavorazione',20)">🔧 20min</button>
+        <button onclick="inviaFrigg('Patatine',2)">🍟 PATATINE x2</button>
+        <button onclick="annulla()">❌ ANNULLA</button>
+    </div>
+
+    <script>
+        let API_URL='http://'+window.location.hostname+':3000';
+        let tavoloSelezionato=null;
+        
+        async function carica(){
+            let res=await fetch(API_URL+'/api/stati-combinati');
+            let tavoli=await res.json();
+            let html='';
+            for(let t of tavoli){
+                let classe=tavoloSelezionato===t.tavolo_id?'selezionato':'';
+                if(t.stato_cucina==='lavorazione') classe+=' lavoro';
+                if(t.stato_cucina==='pronto') classe+=' pronto';
+                html+=`<div class="tavolo ${classe}" onclick="seleziona(${t.tavolo_id})">
+                        ${t.tavolo_id}<br>${t.stato_cucina||'attesa'}
+                    </div>`;
+            }
+            document.getElementById('griglia').innerHTML=html;
+            document.getElementById('pannello').style.display=tavoloSelezionato?'block':'none';
+        }
+        
+        function seleziona(id){
+            tavoloSelezionato=id;
+            carica();
+        }
+        
+        async function setStato(stato,minuti=null){
+            if(!tavoloSelezionato) return;
+            let body={stato:stato};
+            if(minuti) body.tempo_minuti=minuti;
+            await fetch(API_URL+'/api/stati-cucina/'+tavoloSelezionato,{
+                method:'PUT',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify(body)
+            });
+            carica();
+        }
+        
+        async function inviaFrigg(prodotto,quantita){
+            if(!tavoloSelezionato){alert('Seleziona un tavolo');return;}
+            let ordine={tavolo:tavoloSelezionato,zona:'Sala',cliente:'',reparto:'friggitoria',prodotti:[{id:999,nome:prodotto,prezzo:0,quantita:quantita}]};
+            await fetch(API_URL+'/api/ordini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ordine)});
+            await fetch(API_URL+'/api/stati-friggitoria/'+tavoloSelezionato,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({stato:'lavorazione',tempo_minuti:5})});
+            alert(`✅ ${prodotto} x${quantita} per Tavolo ${tavoloSelezionato}`);
+            carica();
+        }
+        
+        function annulla(){
+            tavoloSelezionato=null;
+            carica();
+        }
+        
+        carica();
+        setInterval(carica,3000);
+    </script>
+</body>
+</html>

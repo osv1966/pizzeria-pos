@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Cassa</title>
+    <style>
+        *{box-sizing:border-box}
+        body{background:#f5f5f5;padding:15px;margin:0;font-family:'Segoe UI',Arial}
+        h1{color:#333;text-align:center;font-size:28px;margin:0 0 15px 0}
+        .toolbar{display:flex;gap:15px;margin-bottom:20px}
+        .toolbar button{flex:1;padding:15px;border:none;border-radius:50px;font-size:18px;font-weight:bold;cursor:pointer}
+        .btn-reset{background:#ff6b00;color:white}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:15px}
+        .tavolo{background:white;border-radius:20px;padding:15px;box-shadow:0 2px 8px rgba(0,0,0,0.1);text-align:center}
+        .numero{font-size:24px;font-weight:bold;margin-bottom:10px}
+        .stato{font-size:16px;margin:10px 0;padding:10px;border-radius:40px}
+        .lavoro{background:#fd7e14;color:white}
+        .attesa{background:#6c757d;color:white}
+        .accettato{background:#28a745;color:white}
+        .btn-group{display:flex;gap:10px;margin-top:10px}
+        .btn-accetta{background:#28a745;color:white;border:none;border-radius:40px;padding:12px;font-size:16px;font-weight:bold;cursor:pointer;flex:1}
+        .btn-declina{background:#dc3545;color:white;border:none;border-radius:40px;padding:12px;font-size:16px;font-weight:bold;cursor:pointer;flex:1}
+        .footer{text-align:center;padding:20px;color:#666;font-size:12px}
+    </style>
+</head>
+<body>
+    <h1>🍕 CASSA</h1>
+    <div class="toolbar">
+        <button class="btn-reset" onclick="resetTavoli()">🔄 RESET</button>
+    </div>
+    <div class="griglia" id="griglia"></div>
+    <div class="footer">🔄 Tocca ACCETTA o DECLINA</div>
+
+    <script>
+        let API_URL='http://192.168.1.61:3000';
+        
+        function calcolaMinutiRimasti(ultimo,minuti){
+            if(!ultimo||!minuti) return minuti||0;
+            let fine=new Date(new Date(ultimo).getTime()+minuti*60000);
+            let ora=new Date();
+            return Math.max(0,Math.ceil((fine-ora)/60000));
+        }
+        
+        function carica(){
+            fetch(API_URL+'/api/stati-combinati')
+                .then(r=>r.json())
+                .then(data=>{
+                    let html='';
+                    for(let t of data){
+                        let minC=calcolaMinutiRimasti(t.ultimo_aggiornamento,t.tempo_minuti);
+                        let statoClass='';
+                        let statoTesto='';
+                        let bottoni='';
+                        
+                        if(t.stato==='lavorazione'){
+                            statoClass='lavoro';
+                            statoTesto=`🔧 ${minC}min`;
+                            bottoni=`<div class="btn-group">
+                                <button class="btn-accetta" onclick="accetta(${t.tavolo_id})">✅ ACCETTA</button>
+                                <button class="btn-declina" onclick="declina(${t.tavolo_id})">❌ DECLINA</button>
+                            </div>`;
+                        } else if(t.stato_cassa==='accettato'){
+                            statoClass='accettato';
+                            statoTesto='✅ ACCETTATO';
+                        } else {
+                            statoClass='attesa';
+                            statoTesto='⏳ In attesa';
+                        }
+                        
+                        html+=`<div class="tavolo">
+                            <div class="numero">🍽️ Tavolo ${t.tavolo_id}</div>
+                            <div class="stato ${statoClass}">${statoTesto}</div>
+                            ${bottoni}
+                        </div>`;
+                    }
+                    document.getElementById('griglia').innerHTML=html;
+                });
+        }
+        
+        function accetta(tavolo){
+            fetch(API_URL+'/api/cassa-rispondi/'+tavolo,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({azione:'accetta'})})
+                .then(()=>carica());
+        }
+        
+        function declina(tavolo){
+            fetch(API_URL+'/api/cassa-rispondi/'+tavolo,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({azione:'declina'})})
+                .then(()=>carica());
+        }
+        
+        function resetTavoli(){
+            fetch(API_URL+'/api/reset-tavoli',{method:'POST'})
+                .then(()=>carica());
+        }
+        
+        carica();
+        setInterval(carica,5000);
+    </script>
+</body>
+</html>

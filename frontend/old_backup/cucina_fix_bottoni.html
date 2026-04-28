@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cucina - Gestione Tavoli</title>
+    <style>
+        body{background:#2c3e50;padding:15px;font-family:Arial}
+        h1{color:#ff6b00;text-align:center}
+        .stats{display:flex;gap:10px;justify-content:center;margin-bottom:15px}
+        .stat-card{background:#34495e;padding:8px 15px;border-radius:20px;color:white}
+        .stat-card span{font-size:24px;font-weight:bold;display:block}
+        
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-top:20px}
+        .tavolo{background:#34495e;border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:2px solid transparent;transition:0.2s}
+        .tavolo.selected{border-color:#ff6b00;background:#3d566e}
+        .tavolo.pronto-bg{background:#28a745}
+        .tavolo.lavoro-bg{background:#fd7e14}
+        .tavolo.non-disponibile-bg{background:#dc3545}
+        .tavolo.attesa-bg{background:#3498db}
+        
+        /* BORDO VERDE PER ACCETTAZIONE CASSA */
+        .tavolo.accettato {
+            border: 4px solid #00ff00 !important;
+            box-shadow: 0 0 15px rgba(0,255,0,0.5);
+            animation: pulseGreen 0.5s ease;
+        }
+        @keyframes pulseGreen {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        
+        .numero{font-size:20px;font-weight:bold;color:white}
+        .stato{font-size:12px;margin-top:5px;color:white}
+        .badge-accettato{background:#28a745;color:white;padding:2px 8px;border-radius:10px;font-size:10px;margin-top:4px;display:inline-block}
+        
+        .azione-panel{position:fixed;bottom:0;left:0;right:0;background:#34495e;padding:15px;border-top:2px solid #ff6b00;display:none;z-index:1000}
+        .btn-group{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+        .btn{padding:12px 20px;border:none;border-radius:40px;font-size:16px;font-weight:bold;cursor:pointer}
+        .btn-verde{background:#28a745;color:white}
+        .btn-arancio{background:#fd7e14;color:white}
+        .btn-rosso{background:#dc3545;color:white}
+        .btn-grigio{background:#6c757d;color:white}
+        .btn-tempo{background:#17a2b8;color:white}
+        .tempi-panel{display:none;margin-top:12px}
+        .info-selezione{color:white;text-align:center;margin-bottom:12px}
+        
+        .btn-voce{background:#ff6b00;color:white;border:none;border-radius:20px;padding:8px 20px;cursor:pointer;margin-bottom:15px}
+        .btn-voce.attivo{background:#28a745}
+    </style>
+</head>
+<body>
+    <h1>👨‍🍳 CUCINA</h1>
+    
+    <div style="text-align:center;">
+        <button id="btnAttivaVoce" class="btn-voce">🔊 Attiva Sintesi Vocale</button>
+    </div>
+    
+    <div class="stats">
+        <div class="stat-card">📋 In Attesa<br><span id="stat-attesa">0</span></div>
+        <div class="stat-card">🔧 In Lavoro<br><span id="stat-lavoro">0</span></div>
+        <div class="stat-card">✅ Pronti<br><span id="stat-pronti">0</span></div>
+    </div>
+    
+    <div id="griglia-tavoli" class="griglia"></div>
+
+    <div id="azionePanel" class="azione-panel">
+        <div class="info-selezione" id="info-selezione">Nessun tavolo selezionato</div>
+        <div class="btn-group">
+            <button class="btn btn-verde" onclick="cambiaStato('pronto')">✅ Pronto</button>
+            <button class="btn btn-arancio" onclick="mostraTempi()">⏱️ In Lavorazione</button>
+            <button class="btn btn-rosso" onclick="cambiaStato('non_disponibile')">❌ Non disponibile</button>
+            <button class="btn btn-grigio" onclick="nascondiPanel()">Annulla</button>
+        </div>
+        <div id="tempiPanel" class="tempi-panel">
+            <div class="btn-group">
+                <button class="btn btn-tempo" onclick="lavorazioneConTempo(5)">5 min</button>
+                <button class="btn btn-tempo" onclick="lavorazioneConTempo(10)">10 min</button>
+                <button class="btn btn-tempo" onclick="lavorazioneConTempo(15)">15 min</button>
+                <button class="btn btn-tempo" onclick="lavorazioneConTempo(20)">20 min</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let API_URL = '';
+        let tavoliSelezionati = [];
+        let tavoli = [];
+        let voceAttiva = false;
+        let tavoliAccettatiGiaAnnunciati = new Set();
+        
+                async function caricaTavoli() {
+            try {
+                // Usa l'API corretta del tuo backend
+                const res = await fetch('/api/ordini/cucina');
+                const ordini = await res.json();
+                
+                // Trasforma gli ordini nel formato che il frontend si aspetta
+                tavoli = ordini.map(ordine => ({
+                    tavolo_id: ordine.tavolo_numero,
+                    stato: 'attesa',  // di default in attesa
+                    stato_cassa: ordine.stato === 'completato' ? 'accettato' : 'in_attesa',
+                    ordine_id: ordine.id,
+                    prodotti: ordine.prodotti_dettaglio
+                }));
+                
+                mostraTavoli();
+                aggiornaStatistiche();
+            } catch(e) {
+                console.error('Errore:', e);
+                document.getElementById('griglia-tavoli').innerHTML = '<div style="color:white;">Errore caricamento ordini</div>';
+            }
+        }
+                
+                // Annuncio vocale per nuovi accettati
+                if(isAccettato && voceAttiva && !tavoliAccettatiGiaAnnunciati.has(t.tavolo_id)) {
+                    tavoliAccettatiGiaAnnunciati.add(t.tavolo_id);
+                    const msg = new SpeechSynthesisUtterance(`Tavolo ${t.tavolo_id}, ordine accettato dalla cassa`);
+                    msg.lang = 'it-IT';
+                    window.speechSynthesis.speak(msg);
+                }
+                
+                html += `<div class="tavolo ${statoClass} ${selected} ${classeAccettato}" onclick="selezionaTavolo(${t.tavolo_id})">
+                            <div class="numero">🍽️ ${t.tavolo_id}</div>
+                            <div class="stato">${statoText}</div>
+                            ${badgeAccettato}
+                        </div>`;
+            });
+            document.getElementById('griglia-tavoli').innerHTML = html;
+        }
+        
+        function selezionaTavolo(id) {
+            if(tavoliSelezionati.includes(id)) {
+                tavoliSelezionati = [];
+                nascondiPanel();
+            } else {
+                tavoliSelezionati = [id];
+                document.getElementById('info-selezione').innerHTML = `Tavolo ${id} selezionato`;
+                document.getElementById('azionePanel').style.display = 'block';
+            }
+            mostraTavoli();
+        }
+        
+                async function cambiaStato(stato) {
+            const id = tavoliSelezionati[0];
+            if(!id) { alert('Seleziona un tavolo'); return; }
+            
+            // Trova l'ordine corrispondente al tavolo
+            const ordine = tavoli.find(t => t.tavolo_id === id);
+            if(ordine && ordine.ordine_id) {
+                await fetch(`/api/ordini/${ordine.ordine_id}/completa`, {
+                    method: 'PUT',
+                    headers: {'Content-Type':'application/json'}
+                });
+            }
+            
+            tavoliSelezionati = [];
+            nascondiPanel();
+            caricaTavoli();
+        }
+        
+        function mostraTempi() {
+            document.getElementById('tempiPanel').style.display = 'block';
+        }
+        
+                async function lavorazioneConTempo(minuti) {
+            const id = tavoliSelezionati[0];
+            if(!id) { alert('Seleziona un tavolo'); return; }
+            
+            // Per ora mostra solo alert
+            alert(`Lavorazione ${minuti} minuti - Da implementare con le tue API`);
+            
+            tavoliSelezionati = [];
+            nascondiTempi();
+            nascondiPanel();
+            caricaTavoli();
+        }
+        
+        function nascondiPanel() {
+            document.getElementById('azionePanel').style.display = 'none';
+            document.getElementById('tempiPanel').style.display = 'none';
+            tavoliSelezionati = [];
+        }
+        
+        function nascondiTempi() {
+            document.getElementById('tempiPanel').style.display = 'none';
+        }
+        
+        // Attiva voce
+        document.getElementById('btnAttivaVoce').onclick = () => {
+            voceAttiva = true;
+            const msg = new SpeechSynthesisUtterance("Sintesi vocale attivata");
+            msg.lang = 'it-IT';
+            window.speechSynthesis.speak(msg);
+            document.getElementById('btnAttivaVoce').classList.add('attivo');
+            document.getElementById('btnAttivaVoce').innerHTML = '🔊 Voce Attiva ✅';
+        };
+        
+        caricaTavoli();
+        setInterval(caricaTavoli, 5000);
+    </script>
+</body>
+</html>

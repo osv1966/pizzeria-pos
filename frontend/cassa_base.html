@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cassa</title>
+    <style>
+        body{background:#f5f5f5;font-family:Arial;padding:10px}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+        .tavolo{background:white;border-radius:12px;padding:10px;margin:5px}
+        .reparto{background:#f0f0f0;padding:8px;margin:5px 0;border-radius:8px}
+        .accettato{color:#28a745;font-weight:bold}
+        .bordo-verde{border:2px solid #28a745}
+        button{background:#28a745;color:white;border:none;border-radius:20px;padding:5px 10px;margin-top:5px;cursor:pointer}
+    </style>
+</head>
+<body>
+    <h2>🍕 CASSA</h2>
+    <div class="griglia" id="griglia"></div>
+    <script>
+        let API_URL='http://192.168.1.61:3000';
+        function calcolaMinutiRimasti(ultimo,minuti){
+            if(!ultimo||!minuti) return minuti||0;
+            let fine=new Date(new Date(ultimo).getTime()+minuti*60000);
+            let ora=new Date();
+            return Math.max(0,Math.ceil((fine-ora)/60000));
+        }
+        async function carica(){
+            let res=await fetch(API_URL+'/api/stati-combinati');
+            let tavoli=await res.json();
+            let html='';
+            for(let t of tavoli){
+                let minC=calcolaMinutiRimasti(t.ultimo_cucina,t.tempo_cucina);
+                let border='';
+                if(t.stato_cassa==='accettato') border='bordo-verde';
+                html+=`<div class="tavolo ${border}">
+                    <div>Tavolo ${t.tavolo_id}</div>
+                    <div class="reparto">🍔 CUCINA: ${t.stato_cucina==='lavorazione'?`🔧 ${minC}min`:(t.stato_cassa==='accettato'?'✅ ACCETTATO':'⏳ In attesa')}</div>
+                    ${t.stato_cucina==='lavorazione'?`<button onclick="accetta(${t.tavolo_id})">✅ ACCETTA</button>`:''}
+                </div>`;
+            }
+            document.getElementById('griglia').innerHTML=html;
+        }
+        async function accetta(tavolo){
+            await fetch(API_URL+'/api/cassa-rispondi/'+tavolo,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({azione:'accetta'})});
+            carica();
+        }
+        carica();
+        setInterval(carica,5000);
+    </script>
+</body>
+</html>

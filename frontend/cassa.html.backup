@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Cassa - Monitor Tavoli</title>
+    <style>
+        *{box-sizing:border-box}
+        body{font-family:'Segoe UI',Arial;background:#f5f5f5;margin:0;padding:15px}
+        h1{color:#333;text-align:center;margin:0 0 20px 0;font-size:24px}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:12px;max-width:1400px;margin:0 auto}
+        .tavolo{background:white;border-radius:16px;padding:12px 8px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.1);border-left:4px solid #ccc}
+        .tavolo .numero{font-size:20px;font-weight:bold;color:#333}
+        .tavolo .stato{font-size:11px;padding:4px 8px;border-radius:20px;margin-top:8px;display:inline-block;font-weight:bold}
+        .tavolo .tempo{font-size:11px;color:#ff6b00;margin-top:6px;font-weight:bold}
+        .stato-attesa{background:#6c757d;color:white}
+        .stato-lavorazione{background:#fd7e14;color:white}
+        .stato-pronto{background:#28a745;color:white}
+        .stato-non-disponibile{background:#dc3545;color:white}
+        .footer{text-align:center;padding:20px;color:#666;font-size:12px}
+        @media(max-width:700px){.griglia{grid-template-columns:repeat(auto-fill,minmax(75px,1fr))}}
+    </style>
+</head>
+<body>
+    <h1>🍕 CASSA - MONITOR TAVOLI</h1>
+    <div class="griglia" id="griglia-tavoli"></div>
+    <div class="footer">🔄 Aggiornamento automatico ogni 5 secondi</div>
+    <script>
+        let API_URL = 'http://' + window.location.hostname + ':3000';
+        async function caricaTavoli(){
+            try{
+                let res=await fetch(API_URL+'/api/stati-tavoli');
+                let tavoli=await res.json();
+                let html='';
+                for(let t of tavoli){
+                    let stato=t.stato||'in_attesa';
+                    let statoClass='',statoText='',tempoHtml='';
+                    if(stato=='lavorazione'){statoClass='stato-lavorazione';statoText='🔧 In lavoro';if(t.tempo_minuti)tempoHtml='<div class="tempo">⏱️ '+t.tempo_minuti+' min</div>';}
+                    else if(stato=='pronto'){statoClass='stato-pronto';statoText='✅ Pronto';}
+                    else if(stato=='non_disponibile'){statoClass='stato-non-disponibile';statoText='❌ Non disp.';}
+                    else{statoClass='stato-attesa';statoText='⏳ In attesa';}
+                    html+='<div class="tavolo"><div class="numero">🍽️ '+t.tavolo_id+'</div><div class="stato '+statoClass+'">'+statoText+'</div>'+tempoHtml+'</div>';
+                }
+                document.getElementById('griglia-tavoli').innerHTML=html;
+            }catch(e){console.error(e);}
+        }
+        caricaTavoli();
+        setInterval(caricaTavoli,5000);
+    </script>
+</body>
+</html>

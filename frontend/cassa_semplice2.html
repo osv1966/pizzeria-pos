@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cassa</title>
+    <style>
+        body{background:#f5f5f5;font-family:Arial;padding:10px}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+        .tavolo{background:white;border-radius:12px;padding:10px;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
+        .numero{font-size:20px;font-weight:bold}
+        .stato{padding:8px;margin:8px 0;border-radius:30px;font-size:14px}
+        .verde{background:#28a745;color:white}
+        .arancione{background:#fd7e14;color:white}
+        .grigio{background:#6c757d;color:white}
+        button{padding:10px;margin:5px;border:none;border-radius:30px;cursor:pointer}
+        .btn-verde{background:#28a745;color:white}
+        .btn-rosso{background:#dc3545;color:white}
+    </style>
+</head>
+<body>
+    <h2>🍕 CASSA</h2>
+    <div class="griglia" id="griglia"></div>
+    <script>
+        let API_URL='http://192.168.1.61:3000';
+        
+        function carica(){
+            fetch(API_URL+'/api/stati-combinati')
+                .then(r=>r.json())
+                .then(data=>{
+                    let html='';
+                    for(let t of data){
+                        let colore='grigio';
+                        let testo='⏳ IN ATTESA';
+                        let bottoni='';
+                        
+                        if(t.stato_cassa==='accettato'){
+                            colore='verde';
+                            testo='✅ ACCETTATO';
+                        } else if(t.stato==='lavorazione'){
+                            colore='arancione';
+                            testo='🔧 IN LAVORO';
+                            bottoni=`<div><button class="btn-verde" onclick="accetta(${t.tavolo_id})">✅ ACCETTA</button> <button class="btn-rosso" onclick="declina(${t.tavolo_id})">❌ DECLINA</button></div>`;
+                        }
+                        
+                        html+=`<div class="tavolo">
+                            <div class="numero">🍽️ Tavolo ${t.tavolo_id}</div>
+                            <div class="stato ${colore}">${testo}</div>
+                            ${bottoni}
+                        </div>`;
+                    }
+                    document.getElementById('griglia').innerHTML=html;
+                });
+        }
+        
+        function accetta(tavolo){
+            fetch(API_URL+'/api/cassa-rispondi/'+tavolo,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({azione:'accetta'})})
+                .then(()=>carica());
+        }
+        
+        function declina(tavolo){
+            fetch(API_URL+'/api/cassa-rispondi/'+tavolo,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({azione:'declina'})})
+                .then(()=>carica());
+        }
+        
+        carica();
+        setInterval(carica,3000);
+    </script>
+</body>
+</html>

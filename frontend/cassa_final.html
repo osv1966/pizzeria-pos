@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cassa</title>
+    <style>
+        body{background:#f5f5f5;font-family:Arial;padding:10px}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+        .tavolo{background:white;border-radius:12px;padding:10px;margin:5px}
+        .reparto{padding:8px;margin:5px 0;border-radius:8px;background:#f0f0f0}
+        .bordo-verde{border:2px solid #28a745}
+        button{background:#28a745;color:white;border:none;border-radius:20px;padding:5px 10px;margin-top:5px;cursor:pointer}
+    </style>
+</head>
+<body>
+    <h2>🍕 CASSA</h2>
+    <div id="griglia"></div>
+    <script>
+        let API_URL='http://192.168.1.61:3000';
+        function carica(){
+            fetch(API_URL+'/api/stati-combinati')
+                .then(r=>r.json())
+                .then(data=>{
+                    let html='';
+                    for(let t of data){
+                        let bordo='';
+                        let testo='';
+                        let bottoni='';
+                        if(t.stato_cucina==='lavorazione'){
+                            testo='🔧 In lavoro';
+                            bottoni=`<button onclick="accetta(${t.tavolo_id})">✅ ACCETTA</button>`;
+                        } else if(t.stato_cassa==='accettato'){
+                            testo='✅ ACCETTATO';
+                            bordo='bordo-verde';
+                        } else {
+                            testo='⏳ In attesa';
+                        }
+                        html+=`<div class="tavolo ${bordo}">
+                            <div>Tavolo ${t.tavolo_id}</div>
+                            <div class="reparto">🍔 CUCINA: ${testo}</div>
+                            ${bottoni}
+                        </div>`;
+                    }
+                    document.getElementById('griglia').innerHTML=html;
+                });
+        }
+        function accetta(tavolo){
+            fetch(API_URL+'/api/cassa-rispondi/'+tavolo,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({azione:'accetta'})})
+                .then(()=>carica());
+        }
+        carica();
+        setInterval(carica,5000);
+    </script>
+</body>
+</html>

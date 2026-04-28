@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Cucina - Gestione</title>
+    <style>
+        *{box-sizing:border-box}
+        body{font-family:'Segoe UI',Arial;background:#1a1a2e;padding:15px;margin:0}
+        h1{color:#ff6b00;text-align:center;margin:0 0 15px 0;font-size:24px}
+        .stats{display:flex;gap:10px;justify-content:center;margin-bottom:20px;flex-wrap:wrap}
+        .stat-card{background:#16213e;padding:8px 15px;border-radius:20px;color:white;text-align:center}
+        .stat-card span{font-size:24px;font-weight:bold;display:block}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(85px,1fr));gap:10px;margin-bottom:20px}
+        .tavolo{background:#0f3460;border-radius:12px;padding:10px 5px;text-align:center;cursor:pointer;transition:0.1s;border:2px solid transparent}
+        .tavolo:active{transform:scale(0.97)}
+        .tavolo.selected{border-color:#ff6b00;background:#1a4a6e}
+        .numero{font-size:20px;font-weight:bold;color:white}
+        .stato{font-size:11px;padding:3px 6px;border-radius:15px;margin-top:5px;display:inline-block}
+        .stato-attesa{background:#6c757d;color:white}
+        .stato-lavorazione{background:#fd7e14;color:white}
+        .stato-pronto{background:#28a745;color:white}
+        .stato-non-disponibile{background:#dc3545;color:white}
+        .tempo{font-size:11px;color:#ffd966;margin-top:4px}
+        .azione-panel{position:fixed;bottom:0;left:0;right:0;background:#16213e;padding:15px;border-top:2px solid #ff6b00;display:none;z-index:1000}
+        .btn-group{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+        .btn{padding:12px 20px;border:none;border-radius:40px;font-size:16px;font-weight:bold;cursor:pointer;flex:1;min-width:90px}
+        .btn-verde{background:#28a745;color:white}
+        .btn-arancio{background:#fd7e14;color:white}
+        .btn-rosso{background:#dc3545;color:white}
+        .btn-grigio{background:#6c757d;color:white}
+        .btn-tempo{background:#17a2b8;color:white;font-size:14px;padding:10px 15px}
+        .frigg-box{background:#16213e;border-radius:16px;padding:12px;margin-top:20px;text-align:center}
+        .frigg-btn{background:#fd7e14;color:white;border:none;border-radius:30px;padding:10px 16px;margin:5px;font-size:14px;font-weight:bold;cursor:pointer}
+        .info-selezione{color:#ddd;text-align:center;margin-bottom:12px;font-size:14px}
+        @media(max-width:600px){.griglia{grid-template-columns:repeat(auto-fill,minmax(70px,1fr))}.numero{font-size:16px}}
+    </style>
+</head>
+<body>
+    <h1>👨‍🍳 CUCINA</h1>
+    
+    <div class="stats">
+        <div class="stat-card">⏳ In attesa<br><span id="stat-attesa">0</span></div>
+        <div class="stat-card">🔧 In lavoro<br><span id="stat-lavoro">0</span></div>
+        <div class="stat-card">✅ Pronti<br><span id="stat-pronti">0</span></div>
+    </div>
+    
+    <div class="griglia" id="griglia-tavoli"></div>
+    
+    <div class="frigg-box">
+        <h3 style="color:#fd7e14;margin:0 0 8px 0;">🍟 FRIGGITORIA RAPIDA</h3>
+        <div>
+            <button class="frigg-btn" onclick="inviaFrigg('Patatine',1)">🍟 Patatine x1</button>
+            <button class="frigg-btn" onclick="inviaFrigg('Patatine',2)">🍟 Patatine x2</button>
+            <button class="frigg-btn" onclick="inviaFrigg('Patatine',3)">🍟 Patatine x3</button>
+            <button class="frigg-btn" onclick="inviaFrigg('Crocchette',1)">🍡 Crocchette x1</button>
+            <button class="frigg-btn" onclick="inviaFrigg('Crocchette',2)">🍡 Crocchette x2</button>
+            <button class="frigg-btn" onclick="inviaFrigg('Arancini',1)">🍘 Arancini x1</button>
+            <button class="frigg-btn" onclick="inviaFrigg('Arancini',2)">🍘 Arancini x2</button>
+        </div>
+    </div>
+    
+    <div id="azione-panel" class="azione-panel">
+        <div class="info-selezione" id="info-selezione">📋 0 tavoli selezionati</div>
+        <div class="btn-group" id="btn-group-main">
+            <button class="btn btn-verde" onclick="azioneSuTavoli('pronto')">✅ PRONTO</button>
+            <button class="btn btn-arancio" onclick="mostraTempi()">⏱️ IN LAVORAZIONE</button>
+            <button class="btn btn-rosso" onclick="azioneSuTavoli('non_disponibile')">❌ NON DISP.</button>
+            <button class="btn btn-grigio" onclick="annullaSelezione()">ANNULLA</button>
+        </div>
+        <div id="tempi-buttons" style="display:none; margin-top:12px;">
+            <div class="btn-group">
+                <button class="btn btn-tempo" onclick="azioneConTempo('lavorazione',10)">10 min</button>
+                <button class="btn btn-tempo" onclick="azioneConTempo('lavorazione',20)">20 min</button>
+                <button class="btn btn-tempo" onclick="azioneConTempo('lavorazione',30)">30 min</button>
+                <button class="btn btn-tempo" onclick="azioneConTempo('lavorazione',45)">45 min</button>
+                <button class="btn btn-tempo" onclick="azioneConTempo('lavorazione',60)">60 min</button>
+                <button class="btn btn-grigio" onclick="nascondiTempi()">Indietro</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let API_URL = 'http://' + window.location.hostname + ':3000';
+        let tavoliStati = [];
+        let tavoliSelezionati = [];
+        
+        async function caricaDati() {
+            try {
+                let res = await fetch(API_URL + '/api/stati-combinati');
+                tavoliStati = await res.json();
+                aggiornaGriglia();
+                aggiornaStatistiche();
+            } catch(e) { console.error(e); }
+        }
+        
+        function aggiornaGriglia() {
+            let html = '';
+            for (let t of tavoliStati) {
+                let stato = t.stato_cucina || 'in_attesa';
+                let statoClass = '';
+                let statoText = '';
+                let tempoHtml = '';
+                
+                if (stato === 'lavorazione') {
+                    statoClass = 'stato-lavorazione'; statoText = '🔧 Lavoro';
+                    if (t.tempo_cucina) tempoHtml = `<div class="tempo">${t.tempo_cucina} min</div>`;
+                } else if (stato === 'pronto') {
+                    statoClass = 'stato-pronto'; statoText = '✅ Pronto';
+                } else if (stato === 'non_disponibile') {
+                    statoClass = 'stato-non-disponibile'; statoText = '❌ No';
+                } else {
+                    statoClass = 'stato-attesa'; statoText = '⏳ Attesa';
+                }
+                
+                let selected = tavoliSelezionati.includes(t.tavolo_id) ? 'selected' : '';
+                html += `<div class="tavolo ${selected}" onclick="toggleSelezione(${t.tavolo_id})">
+                            <div class="numero">🍽️ ${t.tavolo_id}</div>
+                            <div class="stato ${statoClass}">${statoText}</div>
+                            ${tempoHtml}
+                        </div>`;
+            }
+            document.getElementById('griglia-tavoli').innerHTML = html;
+            document.getElementById('info-selezione').innerHTML = `📋 ${tavoliSelezionati.length} tavolo/i selezionati`;
+            document.getElementById('azione-panel').style.display = tavoliSelezionati.length ? 'block' : 'none';
+        }
+        
+        function aggiornaStatistiche() {
+            let attesa = tavoliStati.filter(t => !t.stato_cucina || t.stato_cucina === 'in_attesa').length;
+            let lavoro = tavoliStati.filter(t => t.stato_cucina === 'lavorazione').length;
+            let pronti = tavoliStati.filter(t => t.stato_cucina === 'pronto').length;
+            document.getElementById('stat-attesa').innerText = attesa;
+            document.getElementById('stat-lavoro').innerText = lavoro;
+            document.getElementById('stat-pronti').innerText = pronti;
+        }
+        
+        function toggleSelezione(id) {
+            if (tavoliSelezionati.includes(id)) {
+                tavoliSelezionati = tavoliSelezionati.filter(i => i !== id);
+            } else {
+                tavoliSelezionati.push(id);
+            }
+            aggiornaGriglia();
+        }
+        
+        function annullaSelezione() { tavoliSelezionati = []; aggiornaGriglia(); }
+        
+        function mostraTempi() {
+            document.getElementById('btn-group-main').style.display = 'none';
+            document.getElementById('tempi-buttons').style.display = 'block';
+        }
+        function nascondiTempi() {
+            document.getElementById('btn-group-main').style.display = 'flex';
+            document.getElementById('tempi-buttons').style.display = 'none';
+        }
+        
+        async function azioneSuTavoli(stato) {
+            if (!tavoliSelezionati.length) return;
+            for (let id of tavoliSelezionati) {
+                await fetch(API_URL + '/api/stati-cucina/' + id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stato: stato, tempo_minuti: null })
+                });
+                if (stato === 'pronto') {
+                    let voce = new SpeechSynthesisUtterance(`Tavolo ${id}, pronto`);
+                    voce.lang = 'it-IT';
+                    speechSynthesis.cancel();
+                    speechSynthesis.speak(voce);
+                }
+            }
+            tavoliSelezionati = [];
+            caricaDati();
+        }
+        
+        async function azioneConTempo(stato, minuti) {
+            if (!tavoliSelezionati.length) return;
+            for (let id of tavoliSelezionati) {
+                await fetch(API_URL + '/api/stati-cucina/' + id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stato: stato, tempo_minuti: minuti })
+                });
+                let voce = new SpeechSynthesisUtterance(`Tavolo ${id}, lavoro ${minuti} minuti`);
+                voce.lang = 'it-IT';
+                speechSynthesis.cancel();
+                speechSynthesis.speak(voce);
+            }
+            tavoliSelezionati = [];
+            nascondiTempi();
+            caricaDati();
+        }
+        
+        async function inviaFrigg(prodotto, quantita) {
+            let tavolo = tavoliSelezionati.length ? tavoliSelezionati[0] : 1;
+            let ordine = {
+                tavolo: tavolo,
+                zona: 'Sala',
+                nome_cliente: '',
+                reparto: 'friggitoria',
+                prodotti: [{ id: 999, nome: prodotto, prezzo: 0, quantita: quantita }]
+            };
+            try {
+                let res = await fetch(API_URL + '/api/ordini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ordine) });
+                let data = await res.json();
+                if (data.success) {
+                    await fetch(API_URL + '/api/stati-friggitoria/' + tavolo, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ stato: 'lavorazione', tempo_minuti: 5 })
+                    });
+                    alert(`✅ ${prodotto} x${quantita} per Tavolo ${tavolo}`);
+                    caricaDati();
+                }
+            } catch(e) { alert('❌ Errore'); }
+        }
+        
+        caricaDati();
+        setInterval(caricaDati, 5000);
+    </script>
+</body>
+</html>
+<style>
+/* Aggiungo stile per bottone attivo */
+.frigg-btn {
+    background: #fd7e14;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    padding: 10px 16px;
+    margin: 5px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.1s;
+}
+.frigg-btn:active {
+    background: #cc7000;
+    transform: scale(0.95);
+}
+.frigg-btn.inviato {
+    background: #28a745;
+    transform: scale(0.98);
+}
+</style>
+
+<script>
+// Sostituisco la funzione inviaFrigg con feedback visivo
+function inviaFrigg(prodotto, quantita, btnElement) {
+    // Feedback visivo immediato: cambio colore bottone
+    if (btnElement) {
+        btnElement.style.background = '#28a745';
+        btnElement.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            btnElement.style.background = '#fd7e14';
+            btnElement.style.transform = 'scale(1)';
+        }, 300);
+    }
+    
+    let tavolo = 1;
+    if (typeof tavoloSelezionato !== 'undefined' && tavoloSelezionato) {
+        tavolo = tavoloSelezionato;
+    } else if (tavoliSelezionati && tavoliSelezionati.length > 0) {
+        tavolo = tavoliSelezionati[0];
+    }
+    
+    console.log('📤 Friggitoria per tavolo:', tavolo);
+    
+    let ordine = {
+        tavolo: tavolo,
+        zona: 'Sala',
+        nome_cliente: '',
+        reparto: 'friggitoria',
+        prodotti: [{ id: 999, nome: prodotto, prezzo: 0, quantita: quantita }]
+    };
+    
+    fetch(API_URL + '/api/ordini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ordine)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            return fetch(API_URL + '/api/stati-friggitoria/' + tavolo, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stato: 'lavorazione', tempo_minuti: 5 })
+            });
+        }
+        throw new Error('Errore');
+    })
+    .then(() => {
+        alert(`✅ ${prodotto} x${quantita} - Tavolo ${tavolo}`);
+        caricaDati();  // Ricarica per mostrare il nuovo stato
+    })
+    .catch(e => alert('❌ Errore: ' + e.message));
+}
+</script>
+
+<!-- Aggiorno i bottoni nel HTML con onclick che passa this -->
+<button class="frigg-btn" onclick="inviaFrigg('Patatine',1,this)">🍟 Patatine x1</button>
+<button class="frigg-btn" onclick="inviaFrigg('Patatine',2,this)">🍟 Patatine x2</button>
+<button class="frigg-btn" onclick="inviaFrigg('Patatine',3,this)">🍟 Patatine x3</button>
+<button class="frigg-btn" onclick="inviaFrigg('Crocchette',1,this)">🍡 Crocchette x1</button>
+<button class="frigg-btn" onclick="inviaFrigg('Crocchette',2,this)">🍡 Crocchette x2</button>
+<button class="frigg-btn" onclick="inviaFrigg('Arancini',1,this)">🍘 Arancini x1</button>
+<button class="frigg-btn" onclick="inviaFrigg('Arancini',2,this)">🍘 Arancini x2</button>

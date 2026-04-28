@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Cucina</title>
+</head>
+<body>
+    <h1>Test Cucina</h1>
+    <div id="tavoli"></div>
+    <script>
+        let API_URL='http://'+window.location.hostname+':3000';
+        async function carica(){
+            let res=await fetch(API_URL+'/api/stati-combinati');
+            let tavoli=await res.json();
+            let html='';
+            for(let t of tavoli){
+                html+=`<div>🍽️ Tavolo ${t.tavolo_id} - Cucina: ${t.stato_cucina} - Cassa: ${t.stato_cassa}</div>`;
+            }
+            document.getElementById('tavoli').innerHTML=html;
+        }
+        carica();
+    </script>
+</body>
+</html>

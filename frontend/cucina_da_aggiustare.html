@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Cucina - Gestione Tavoli</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        body { font-family: 'Segoe UI', Arial; background: #1a1a2e; margin: 0; padding: 15px; }
+        h1 { color: white; text-align: center; margin: 0 0 20px 0; font-size: 24px; }
+        .stats { display: flex; gap: 15px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-card { background: #16213e; padding: 12px 20px; border-radius: 20px; color: white; text-align: center; min-width: 100px; }
+        .stat-card span { font-size: 28px; font-weight: bold; display: block; }
+        .griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; max-width: 1400px; margin: 0 auto; }
+        .tavolo { background: #0f3460; border-radius: 16px; padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .tavolo:active { transform: scale(0.97); }
+        .tavolo.selected { border-color: #ff6b00; background: #1a4a6e; }
+        .tavolo .numero { font-size: 22px; font-weight: bold; color: white; }
+        .tavolo .stato { font-size: 11px; padding: 4px 8px; border-radius: 20px; margin-top: 8px; display: inline-block; font-weight: bold; }
+        .tavolo .tempo { font-size: 14px; color: #ffd966; margin-top: 6px; font-weight: bold; }
+        .stato-attesa { background: #6c757d; color: white; }
+        .stato-lavorazione { background: #fd7e14; color: white; }
+        .stato-pronto { background: #28a745; color: white; }
+        .stato-non-disponibile { background: #dc3545; color: white; }
+        .azione-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #16213e; padding: 20px; border-top: 2px solid #ff6b00; display: none; z-index: 1000; }
+        .azione-panel .btn-group { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+        .btn { padding: 14px 20px; border: none; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; flex: 1; min-width: 100px; }
+        .btn-verde { background: #28a745; color: white; }
+        .btn-arancio { background: #fd7e14; color: white; }
+        .btn-rosso { background: #dc3545; color: white; }
+        .btn-grigio { background: #6c757d; color: white; }
+        .btn-tempo { background: #17a2b8; color: white; font-size: 14px; }
+        .info-selezione { color: white; text-align: center; margin-bottom: 15px; font-size: 16px; }
+        .reparto-buttons { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+        .reparto-btn { background: #0f3460; color: white; padding: 10px 25px; border-radius: 30px; cursor: pointer; border: none; font-size: 16px; }
+        .reparto-btn.active { background: #ff6b00; }
+        @media (max-width: 700px) { .griglia { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); } .tavolo .numero { font-size: 18px; } }
+    </style>
+</head>
+<body>
+    <h1>👨‍🍳 CUCINA - GESTIONE TAVOLI</h1>
+    
+    <div class="reparto-buttons">
+        <button class="reparto-btn active" data-reparto="cucina" onclick="setReparto('cucina', this)">🍳 CUCINA</button>
+        <button class="reparto-btn" data-reparto="friggitoria" onclick="setReparto('friggitoria', this)">🍟 FRIGGITORIA</button>
+    </div>
+    
+    <div class="stats" id="stats-container">
+        <div class="stat-card">⏳ In attesa<br><span id="stat-attesa">0</span></div>
+        <div class="stat-card">🔧 In lavoro<br><span id="stat-lavoro">0</span></div>
+        <div class="stat-card">✅ Pronti<br><span id="stat-pronti">0</span></div>
+        <div class="stat-card">❌ Non disp.<br><span id="stat-non-disp">0</span></div>
+    </div>
+    
+    <div class="griglia" id="griglia-tavoli"></div>
+    
+    <div id="azione-panel" class="azione-panel">
+        <div class="info-selezione" id="info-selezione">📋 Nessun tavolo selezionato</div>
+        <div class="btn-group" id="btn-group">
+            <button class="btn btn-verde" onclick="azioneMassiva('pronto')">✅ PRONTO</button>
+            <button class="btn btn-arancio" onclick="mostraSceltaTempo()">⏱️ IN LAVORAZIONE</button>
+            <button class="btn btn-rosso" onclick="azioneMassiva('non_disponibile')">❌ NON DISPONIBILE</button>
+            <button class="btn btn-grigio" onclick="annullaSelezione()">ANNULLA</button>
+        </div>
+        <div id="tempi-buttons" style="display: none; margin-top: 15px;">
+            <div class="btn-group">
+                <button class="btn btn-tempo" onclick="azioneMassivaConTempo('lavorazione', 10)">10 min</button>
+                <button class="btn btn-tempo" onclick="azioneMassivaConTempo('lavorazione', 20)">20 min</button>
+                <button class="btn btn-tempo" onclick="azioneMassivaConTempo('lavorazione', 30)">30 min</button>
+                <button class="btn btn-tempo" onclick="azioneMassivaConTempo('lavorazione', 45)">45 min</button>
+                <button class="btn btn-tempo" onclick="azioneMassivaConTempo('lavorazione', 60)">60 min</button>
+                <button class="btn btn-grigio" onclick="nascondiSceltaTempo()">Indietro</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let API_URL = 'http://' + window.location.hostname + ':3000';
+        let tavoliStati = [];
+        let tavoliSelezionati = [];
+        let repartoCorrente = 'cucina';
+        let timerIntervals = {};
+
+        async function caricaTavoli() {
+            try {
+                let res = await fetch(API_URL + '/api/stati-tavoli');
+                tavoliStati = await res.json();
+                aggiornaGriglia();
+                aggiornaStatistiche();
+                avviaTimerPerTavoliInLavorazione();
+            } catch(e) { console.error(e); }
+        }
+
+        function avviaTimerPerTavoliInLavorazione() {
+            for (let t of tavoliStati) {
+                if (t.stato === 'lavorazione' && t.tempo_minuti && t.ultimo_aggiornamento) {
+                    let tavoloId = t.tavolo_id;
+                    let minutiTotali = t.tempo_minuti;
+                    let dataInizio = new Date(t.ultimo_aggiornamento);
+                    let scadenza = new Date(dataInizio.getTime() + minutiTotali * 60000);
+                    
+                    if (timerIntervals[tavoloId]) clearInterval(timerIntervals[tavoloId]);
+                    
+                    timerIntervals[tavoloId] = setInterval(() => {
+                        let ora = new Date();
+                        let minutiRimasti = Math.max(0, Math.ceil((scadenza - ora) / 60000));
+                        let elementoTempo = document.getElementById(`tempo-${tavoloId}`);
+                        if (elementoTempo) {
+                            elementoTempo.innerText = `⏱️ ${minutiRimasti} min`;
+                            if (minutiRimasti === 0) {
+                                clearInterval(timerIntervals[tavoloId]);
+                                caricaTavoli(); // ricarica per aggiornare stato
+                            }
+                        }
+                    }, 60000);
+                }
+            }
+        }
+
+        function aggiornaGriglia() {
+            let html = '';
+            tavoliStati.forEach(t => {
+                let stato = t.stato || 'in_attesa';
+                let statoClass = '';
+                let statoText = '';
+                let tempoHtml = '';
+                
+                switch(stato) {
+                    case 'lavorazione': 
+                        statoClass = 'stato-lavorazione'; 
+                        statoText = '🔧 In lavoro'; 
+                        let minutiRimasti = calcolaMinutiRimasti(t);
+                        tempoHtml = `<div class="tempo" id="tempo-${t.tavolo_id}">⏱️ ${minutiRimasti} min</div>`;
+                        break;
+                    case 'pronto': 
+                        statoClass = 'stato-pronto'; 
+                        statoText = '✅ Pronto'; 
+                        break;
+                    case 'non_disponibile': 
+                        statoClass = 'stato-non-disponibile'; 
+                        statoText = '❌ Non disp.'; 
+                        break;
+                    default: 
+                        statoClass = 'stato-attesa'; 
+                        statoText = '⏳ In attesa';
+                }
+                
+                let selectedClass = tavoliSelezionati.includes(t.tavolo_id) ? 'selected' : '';
+                html += `<div class="tavolo ${selectedClass}" onclick="toggleSelezione(${t.tavolo_id})">
+                            <div class="numero">🍽️ ${t.tavolo_id}</div>
+                            <div class="stato ${statoClass}">${statoText}</div>
+                            ${tempoHtml}
+                        </div>`;
+            });
+            document.getElementById('griglia-tavoli').innerHTML = html;
+            document.getElementById('info-selezione').innerHTML = `📋 ${tavoliSelezionati.length} tavolo/i selezionato/i`;
+            document.getElementById('azione-panel').style.display = tavoliSelezionati.length > 0 ? 'block' : 'none';
+        }
+
+        function calcolaMinutiRimasti(tavolo) {
+            if (!tavolo.ultimo_aggiornamento || !tavolo.tempo_minuti) return tavolo.tempo_minuti || 0;
+            let dataInizio = new Date(tavolo.ultimo_aggiornamento);
+            let scadenza = new Date(dataInizio.getTime() + tavolo.tempo_minuti * 60000);
+            let ora = new Date();
+            return Math.max(0, Math.ceil((scadenza - ora) / 60000));
+        }
+
+        function aggiornaStatistiche() {
+            let attesa = tavoliStati.filter(t => t.stato === 'in_attesa' || !t.stato).length;
+            let lavoro = tavoliStati.filter(t => t.stato === 'lavorazione').length;
+            let pronti = tavoliStati.filter(t => t.stato === 'pronto').length;
+            let nonDisp = tavoliStati.filter(t => t.stato === 'non_disponibile').length;
+            document.getElementById('stat-attesa').innerText = attesa;
+            document.getElementById('stat-lavoro').innerText = lavoro;
+            document.getElementById('stat-pronti').innerText = pronti;
+            document.getElementById('stat-non-disp').innerText = nonDisp;
+        }
+
+        function toggleSelezione(id) {
+            if (tavoliSelezionati.includes(id)) {
+                tavoliSelezionati = tavoliSelezionati.filter(i => i !== id);
+            } else {
+                tavoliSelezionati.push(id);
+            }
+            aggiornaGriglia();
+        }
+
+        function annullaSelezione() { tavoliSelezionati = []; aggiornaGriglia(); }
+
+        function mostraSceltaTempo() {
+            document.getElementById('btn-group').style.display = 'none';
+            document.getElementById('tempi-buttons').style.display = 'block';
+        }
+        function nascondiSceltaTempo() {
+            document.getElementById('btn-group').style.display = 'flex';
+            document.getElementById('tempi-buttons').style.display = 'none';
+        }
+
+
+
+        function setReparto(reparto, btn) {
+            repartoCorrente = reparto;
+            document.querySelectorAll('.reparto-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            caricaTavoli();
+        }
+
+        caricaTavoli();
+        setInterval(caricaTavoli, 4000);
+<script>
+// Versione corretta delle funzioni
+
+async function azioneMassiva(stato) {
+    if (!tavoliSelezionati.length) return;
+    for (let id of tavoliSelezionati) {
+        await fetch(API_URL + '/api/stati-cucina/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stato: stato, tempo_minuti: null })
+        });
+        if (stato === 'pronto') {
+            let voce = new SpeechSynthesisUtterance(`Tavolo ${id}, pronto da portare`);
+            voce.lang = 'it-IT';
+            speechSynthesis.cancel();
+            speechSynthesis.speak(voce);
+        }
+    }
+    tavoliSelezionati = [];
+    caricaTavoli();
+}
+
+async function azioneMassivaConTempo(stato, minuti) {
+    if (!tavoliSelezionati.length) return;
+    for (let id of tavoliSelezionati) {
+        await fetch(API_URL + '/api/stati-cucina/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stato: stato, tempo_minuti: minuti })
+        });
+        let voce = new SpeechSynthesisUtterance(`Tavolo ${id}, in lavorazione per ${minuti} minuti`);
+        voce.lang = 'it-IT';
+        speechSynthesis.cancel();
+        speechSynthesis.speak(voce);
+    }
+    tavoliSelezionati = [];
+    nascondiSceltaTempo();
+    caricaTavoli();
+}
+
+async function ordineFriggitoria(prodotto, quantita) {
+    // Prende il tavolo selezionato o l'ultimo cliccato
+    let tavoloNumero = 1;
+    if (typeof tavoloSelezionato !== 'undefined' && tavoloSelezionato) {
+        tavoloNumero = tavoloSelezionato;
+    } else if (tavoliSelezionati && tavoliSelezionati.length > 0) {
+        tavoloNumero = tavoliSelezionati[0];
+    }
+    
+    let zonaCorrente = (typeof zonaSelezionata !== 'undefined') ? zonaSelezionata : 'Sala';
+    let nomeCliente = document.getElementById('nome_cliente')?.value || '';
+    
+    // Invia ordine alla friggitoria
+    let ordine = {
+        tavolo: tavoloNumero,
+        zona: zonaCorrente,
+        nome_cliente: nomeCliente,
+        reparto: 'friggitoria',
+        prodotti: [{ id: 999, nome: prodotto, prezzo: 0, quantita: quantita }]
+    };
+    
+    try {
+        let res = await fetch(API_URL + '/api/ordini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(ordine)
+        });
+        let data = await res.json();
+        if (data.success) {
+            // Aggiorna stato friggitoria
+            await fetch(API_URL + '/api/stati-friggitoria/' + tavoloNumero, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stato: 'lavorazione', tempo_minuti: 5 })
+            });
+            alert(`✅ ${prodotto} x${quantita} - FRIGGITORIA in lavoro per Tavolo ${tavoloNumero}`);
+            caricaTavoli();
+        }
+    } catch(e) {
+        alert('❌ Errore: ' + e.message);
+    }
+}
+</script>
+    </script>
+</body>
+</html>
+<!-- FRIGGITORIA - ORDINI RAPIDI -->
+<div class="friggitoria-rapida" style="background:#16213e; border-radius: 16px; padding: 15px; margin: 20px 0;">
+    <h3 style="color:white; margin:0 0 15px 0;">🍟 FRIGGITORIA - ORDINI RAPIDI</h3>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <button class="btn-frigg" onclick="ordineFriggitoria('Patatine', 1)">🍟 Patatine x1</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Patatine', 2)">🍟 Patatine x2</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Patatine', 3)">🍟 Patatine x3</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Crocchette', 1)">🍡 Crocchette x1</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Crocchette', 2)">🍡 Crocchette x2</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Arancini', 1)">🍘 Arancini x1</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Arancini', 2)">🍘 Arancini x2</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Supplì', 1)">🍚 Supplì x1</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Supplì', 2)">🍚 Supplì x2</button>
+    </div>
+</div>
+
+<style>
+.btn-frigg { background: #fd7e14; color: white; border: none; border-radius: 30px; padding: 12px 20px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+.btn-frigg:active { transform: scale(0.95); }
+</style>
+
+<script>
+function ordineFriggitoria(prodotto, quantita) {
+    let tavoloNumero = tavoloSelezionato || 1;
+    let zonaCorrente = zonaSelezionata || 'Sala';
+    let nomeCliente = document.getElementById('nome_cliente')?.value || '';
+    let ordine = {
+        tavolo: tavoloNumero,
+        zona: zonaCorrente,
+        nome_cliente: nomeCliente,
+        reparto: 'friggitoria',
+        prodotti: [{ id: 999, nome: prodotto, prezzo: 0, quantita: quantita }]
+    };
+    fetch(API_URL + '/api/ordini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ordine)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Ordine: ' + prodotto + ' x' + quantita + ' inviato in FRIGGITORIA per Tavolo ' + tavoloNumero);
+        } else {
+            alert('❌ Errore invio ordine');
+        }
+    })
+    .catch(e => alert('❌ Errore: ' + e.message));
+}
+<script>
+// Versione corretta delle funzioni
+
+async function azioneMassiva(stato) {
+    if (!tavoliSelezionati.length) return;
+    for (let id of tavoliSelezionati) {
+        await fetch(API_URL + '/api/stati-cucina/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stato: stato, tempo_minuti: null })
+        });
+        if (stato === 'pronto') {
+            let voce = new SpeechSynthesisUtterance(`Tavolo ${id}, pronto da portare`);
+            voce.lang = 'it-IT';
+            speechSynthesis.cancel();
+            speechSynthesis.speak(voce);
+        }
+    }
+    tavoliSelezionati = [];
+    caricaTavoli();
+}
+
+async function azioneMassivaConTempo(stato, minuti) {
+    if (!tavoliSelezionati.length) return;
+    for (let id of tavoliSelezionati) {
+        await fetch(API_URL + '/api/stati-cucina/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stato: stato, tempo_minuti: minuti })
+        });
+        let voce = new SpeechSynthesisUtterance(`Tavolo ${id}, in lavorazione per ${minuti} minuti`);
+        voce.lang = 'it-IT';
+        speechSynthesis.cancel();
+        speechSynthesis.speak(voce);
+    }
+    tavoliSelezionati = [];
+    nascondiSceltaTempo();
+    caricaTavoli();
+}
+
+async function ordineFriggitoria(prodotto, quantita) {
+    // Prende il tavolo selezionato o l'ultimo cliccato
+    let tavoloNumero = 1;
+    if (typeof tavoloSelezionato !== 'undefined' && tavoloSelezionato) {
+        tavoloNumero = tavoloSelezionato;
+    } else if (tavoliSelezionati && tavoliSelezionati.length > 0) {
+        tavoloNumero = tavoliSelezionati[0];
+    }
+    
+    let zonaCorrente = (typeof zonaSelezionata !== 'undefined') ? zonaSelezionata : 'Sala';
+    let nomeCliente = document.getElementById('nome_cliente')?.value || '';
+    
+    // Invia ordine alla friggitoria
+    let ordine = {
+        tavolo: tavoloNumero,
+        zona: zonaCorrente,
+        nome_cliente: nomeCliente,
+        reparto: 'friggitoria',
+        prodotti: [{ id: 999, nome: prodotto, prezzo: 0, quantita: quantita }]
+    };
+    
+    try {
+        let res = await fetch(API_URL + '/api/ordini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(ordine)
+        });
+        let data = await res.json();
+        if (data.success) {
+            // Aggiorna stato friggitoria
+            await fetch(API_URL + '/api/stati-friggitoria/' + tavoloNumero, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stato: 'lavorazione', tempo_minuti: 5 })
+            });
+            alert(`✅ ${prodotto} x${quantita} - FRIGGITORIA in lavoro per Tavolo ${tavoloNumero}`);
+            caricaTavoli();
+        }
+    } catch(e) {
+        alert('❌ Errore: ' + e.message);
+    }
+}
+</script>
+</script>
+<script>
+// Assicuriamoci che le variabili globali esistano
+if (typeof tavoloSelezionato === 'undefined') {
+    var tavoloSelezionato = 1;
+    var zonaSelezionata = 'Sala';
+}
+
+function ordineFriggitoria(prodotto, quantita) {
+    // Uso le variabili globali con fallback
+    let tavoloNumero = (typeof tavoloSelezionato !== 'undefined') ? tavoloSelezionato : 1;
+    let zonaCorrente = (typeof zonaSelezionata !== 'undefined') ? zonaSelezionata : 'Sala';
+    let nomeCliente = document.getElementById('nome_cliente')?.value || '';
+    
+    let ordine = {
+        tavolo: tavoloNumero,
+        zona: zonaCorrente,
+        nome_cliente: nomeCliente,
+        reparto: 'friggitoria',
+        prodotti: [{ id: 999, nome: prodotto, prezzo: 0, quantita: quantita }]
+    };
+    
+    console.log('📤 Invio ordine friggitoria:', ordine);
+    
+    fetch(API_URL + '/api/ordini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ordine)
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log('📥 Risposta:', data);
+        if (data.success) {
+            alert('✅ ' + prodotto + ' x' + quantita + ' inviato in FRIGGITORIA per Tavolo ' + tavoloNumero);
+            caricaTavoli();  // Ricarica la vista
+        } else {
+            alert('❌ Errore: ' + JSON.stringify(data));
+        }
+    })
+    .catch(e => {
+        console.error('❌ Errore:', e);
+        alert('❌ Errore: ' + e.message);
+    });
+}
+<script>
+// Versione corretta delle funzioni
+
+async function azioneMassiva(stato) {
+    if (!tavoliSelezionati.length) return;
+    for (let id of tavoliSelezionati) {
+        await fetch(API_URL + '/api/stati-cucina/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stato: stato, tempo_minuti: null })
+        });
+        if (stato === 'pronto') {
+            let voce = new SpeechSynthesisUtterance(`Tavolo ${id}, pronto da portare`);
+            voce.lang = 'it-IT';
+            speechSynthesis.cancel();
+            speechSynthesis.speak(voce);
+        }
+    }
+    tavoliSelezionati = [];
+    caricaTavoli();
+}
+
+async function azioneMassivaConTempo(stato, minuti) {
+    if (!tavoliSelezionati.length) return;
+    for (let id of tavoliSelezionati) {
+        await fetch(API_URL + '/api/stati-cucina/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stato: stato, tempo_minuti: minuti })
+        });
+        let voce = new SpeechSynthesisUtterance(`Tavolo ${id}, in lavorazione per ${minuti} minuti`);
+        voce.lang = 'it-IT';
+        speechSynthesis.cancel();
+        speechSynthesis.speak(voce);
+    }
+    tavoliSelezionati = [];
+    nascondiSceltaTempo();
+    caricaTavoli();
+}
+
+async function ordineFriggitoria(prodotto, quantita) {
+    // Prende il tavolo selezionato o l'ultimo cliccato
+    let tavoloNumero = 1;
+    if (typeof tavoloSelezionato !== 'undefined' && tavoloSelezionato) {
+        tavoloNumero = tavoloSelezionato;
+    } else if (tavoliSelezionati && tavoliSelezionati.length > 0) {
+        tavoloNumero = tavoliSelezionati[0];
+    }
+    
+    let zonaCorrente = (typeof zonaSelezionata !== 'undefined') ? zonaSelezionata : 'Sala';
+    let nomeCliente = document.getElementById('nome_cliente')?.value || '';
+    
+    // Invia ordine alla friggitoria
+    let ordine = {
+        tavolo: tavoloNumero,
+        zona: zonaCorrente,
+        nome_cliente: nomeCliente,
+        reparto: 'friggitoria',
+        prodotti: [{ id: 999, nome: prodotto, prezzo: 0, quantita: quantita }]
+    };
+    
+    try {
+        let res = await fetch(API_URL + '/api/ordini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(ordine)
+        });
+        let data = await res.json();
+        if (data.success) {
+            // Aggiorna stato friggitoria
+            await fetch(API_URL + '/api/stati-friggitoria/' + tavoloNumero, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stato: 'lavorazione', tempo_minuti: 5 })
+            });
+            alert(`✅ ${prodotto} x${quantita} - FRIGGITORIA in lavoro per Tavolo ${tavoloNumero}`);
+            caricaTavoli();
+        }
+    } catch(e) {
+        alert('❌ Errore: ' + e.message);
+    }
+}
+</script>
+</script>

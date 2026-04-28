@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cucina - DEMO</title>
+    <style>
+        *{box-sizing:border-box}
+        body{background:#2c3e50;padding:15px;font-family:Arial}
+        h1{color:#ff6b00;text-align:center}
+        .btn-voce{background:#ff6b00;color:white;border:none;border-radius:20px;padding:8px 20px;margin:10px auto;display:block;cursor:pointer}
+        .btn-voce.attivo{background:#28a745}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;margin-top:20px}
+        .ordine{background:#34495e;border-radius:16px;padding:15px;border:2px solid transparent;cursor:pointer;transition:0.2s}
+        .ordine.completato{border:4px solid #00ff00 !important;box-shadow:0 0 15px rgba(0,255,0,0.5);animation:pulse 0.5s}
+        @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
+        .tavolo{font-size:24px;font-weight:bold;color:#ff6b00}
+        .storico{position:fixed;top:80px;right:10px;width:250px;background:#34495e;border-radius:10px;padding:10px;color:white;border:1px solid #ff6b00;max-height:400px;overflow-y:auto}
+        .storico h3{margin:0 0 10px 0;text-align:center}
+        .storico-item{padding:5px;border-bottom:1px solid #555}
+    </style>
+</head>
+<body>
+    <h1>👨‍🍳 CUCINA - DEMO</h1>
+    <button id="btnVoce" class="btn-voce">🔊 Attiva Sintesi Vocale</button>
+    <div id="ordini" class="griglia"></div>
+    <div id="storico" class="storico">
+        <h3>📜 Storico Ordini</h3>
+        <div style="text-align:center;color:#999;">Nessun ordine completato</div>
+    </div>
+
+    <script>
+        let voceAttiva = false;
+        let storico = JSON.parse(localStorage.getItem('storicoDemo') || '[]');
+        
+        let ordini = [
+            {id:1, tavolo:5, prodotti:"🍕 Margherita + 🥤 Coca Cola", completato:false},
+            {id:2, tavolo:8, prodotti:"🌶️ Diavola + 🍟 Patatine", completato:false},
+            {id:3, tavolo:12, prodotti:"🍅 Marinara + 💧 Acqua", completato:false},
+            {id:4, tavolo:3, prodotti:"🍕 Pizza OK + 🍺 Birra", completato:false}
+        ];
+        
+        function mostraOrdini() {
+            let html = '';
+            ordini.forEach(ord => {
+                html += `
+                    <div class="ordine ${ord.completato ? 'completato' : ''}" onclick="completaOrdine(${ord.id})">
+                        <div class="tavolo">🍽️ Tavolo ${ord.tavolo}</div>
+                        <div>📦 ${ord.prodotti}</div>
+                        <div style="margin-top:10px;font-size:12px;">${ord.completato ? '✅ COMPLETATO' : '⏳ IN ATTESA'}</div>
+                    </div>
+                `;
+            });
+            document.getElementById('ordini').innerHTML = html || '<div style="color:white;">Nessun ordine</div>';
+            aggiornaStorico();
+        }
+        
+        function completaOrdine(id) {
+            const ordine = ordini.find(o => o.id === id);
+            if(ordine.completato) return;
+            
+            ordine.completato = true;
+            
+            // Aggiungi allo storico
+            storico.unshift({
+                id: ordine.id,
+                tavolo: ordine.tavolo,
+                prodotti: ordine.prodotti,
+                ora: new Date().toLocaleTimeString()
+            });
+            if(storico.length > 10) storico.pop();
+            localStorage.setItem('storicoDemo', JSON.stringify(storico));
+            
+            mostraOrdini();
+            
+            // Voce
+            if(voceAttiva) {
+                try {
+                    let msg = new SpeechSynthesisUtterance(`Tavolo ${ordine.tavolo}, ordine completato`);
+                    msg.lang = 'it-IT';
+                    window.speechSynthesis.speak(msg);
+                } catch(e) {
+                    console.log('Errore voce:', e);
+                }
+            }
+        }
+        
+        function aggiornaStorico() {
+            if(storico.length === 0) {
+                document.getElementById('storico').innerHTML = '<h3>📜 Storico Ordini</h3><div style="text-align:center;color:#999;">Nessun ordine completato</div>';
+                return;
+            }
+            
+            let html = '<h3>📜 Storico Ordini</h3>';
+            storico.forEach(item => {
+                html += `<div class="storico-item">✅ Tavolo ${item.tavolo} - ${item.ora}<br><small>${item.prodotti}</small></div>`;
+            });
+            document.getElementById('storico').innerHTML = html;
+        }
+        
+        // Attiva voce
+        document.getElementById('btnVoce').onclick = () => {
+            voceAttiva = true;
+            try {
+                let msg = new SpeechSynthesisUtterance("Sintesi vocale attivata");
+                msg.lang = 'it-IT';
+                window.speechSynthesis.speak(msg);
+            } catch(e) {}
+            document.getElementById('btnVoce').classList.add('attivo');
+            document.getElementById('btnVoce').innerHTML = '🔊 Voce Attiva';
+        };
+        
+        mostraOrdini();
+    </script>
+</body>
+</html>

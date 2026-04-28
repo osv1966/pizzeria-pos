@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Cassa</title>
+    <style>
+        *{box-sizing:border-box}
+        body{background:#1a1a2e;padding:15px;margin:0;font-family:'Segoe UI',Arial}
+        h1{color:white;text-align:center;font-size:24px;margin:0 0 20px 0}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+        .tavolo{border-radius:16px;padding:12px;text-align:center;transition:0.1s}
+        .numero{font-size:24px;font-weight:bold;margin-bottom:8px}
+        .riga{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;margin:4px 0;border-radius:12px;font-size:14px;font-weight:bold}
+        .attesa{background:#0f3460;color:white}
+        .lavoro{background:#fd7e14;color:white}
+        .pronto{background:#28a745;color:white}
+        .non-disponibile{background:#dc3545;color:white}
+        .tempo{font-size:16px;margin-left:8px}
+        .footer{text-align:center;padding:15px;color:#666;font-size:11px}
+    </style>
+</head>
+<body>
+    <h1>🍕 STATO TAVOLI</h1>
+    <div class="griglia" id="griglia"></div>
+    <div class="footer">🔄 ogni 5s</div>
+
+    <script>
+        let API_URL='http://'+window.location.hostname+':3000';
+        
+        async function carica(){
+            try{
+                let res=await fetch(API_URL+'/api/stati-combinati');
+                let tavoli=await res.json();
+                let html='';
+                for(let t of tavoli){
+                    html+=`<div class="tavolo">
+                        <div class="numero">🍽️ ${t.tavolo_id}</div>
+                        <div class="riga ${getClasse(t.stato_cucina)}">🍳 ${getTesto(t.stato_cucina,t.tempo_cucina)}</div>
+                        <div class="riga ${getClasse(t.stato_friggitoria)}">🍟 ${getTesto(t.stato_friggitoria,t.tempo_friggitoria)}</div>
+                    </div>`;
+                }
+                document.getElementById('griglia').innerHTML=html;
+            }catch(e){console.error(e)}
+        }
+        
+        function getClasse(stato){
+            if(!stato||stato==='in_attesa') return 'attesa';
+            if(stato==='lavorazione') return 'lavoro';
+            if(stato==='pronto') return 'pronto';
+            if(stato==='non_disponibile') return 'non-disponibile';
+            return 'attesa';
+        }
+        
+        function getTesto(stato,tempo){
+            if(!stato||stato==='in_attesa') return 'In attesa';
+            if(stato==='lavorazione') return `In lavoro ${tempo}min`;
+            if(stato==='pronto') return 'Pronto';
+            if(stato==='non_disponibile') return 'Non disp.';
+            return 'In attesa';
+        }
+        
+        carica();
+        setInterval(carica,5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Storico Comunicazioni</title>
+    <style>
+        body{font-family:'Segoe UI',Arial;background:#f5f5f5;padding:20px}
+        h1{color:#333}
+        table{width:100%;border-collapse:collapse;background:white;border-radius:16px;overflow:hidden}
+        th{background:#ff6b00;color:white;padding:12px}
+        td{padding:10px;border-bottom:1px solid #eee}
+        .btn-pulisci{background:#dc3545;color:white;padding:10px 20px;border:none;border-radius:30px;margin-bottom:20px;cursor:pointer}
+    </style>
+</head>
+<body>
+    <h1>📜 STORICO COMUNICAZIONI</h1>
+    <button class="btn-pulisci" onclick="pulisciTutto()">🗑️ PULISCI TUTTO LO STORICO</button>
+    <div id="storico-container"></div>
+
+    <script>
+        let API_URL = 'http://' + window.location.hostname + ':3000';
+        
+        async function caricaStorico() {
+            let res = await fetch(API_URL + '/api/storico-tutti');
+            let dati = await res.json();
+            let html = '<tr><th>Tavolo</th><th>Stato</th><th>Tempo</th><th>Operatore</th><th>Data/Ora</th></tr>';
+            for(let d of dati) {
+                html += `<tr>
+                    <td>🍽️ ${d.tavolo_id}</td>
+                    <td>${d.stato}</td>
+                    <td>${d.tempo_minuti ? d.tempo_minuti + 'min' : '-'}</td>
+                    <td>${d.operatore || 'cucina'}</td>
+                    <td>${new Date(d.data_ora).toLocaleString()}</td>
+                </tr>`;
+            }
+            html += '</table>';
+            document.getElementById('storico-container').innerHTML = html;
+        }
+        
+        async function pulisciTutto() {
+            if(confirm('⚠️ Eliminare TUTTO lo storico?')) {
+                await fetch(API_URL + '/api/pulisci-storico?giorni=0', { method: 'DELETE' });
+                alert('✅ Storico pulito');
+                caricaStorico();
+            }
+        }
+        
+        caricaStorico();
+        setInterval(caricaStorico, 10000);
+    </script>
+</body>
+</html>

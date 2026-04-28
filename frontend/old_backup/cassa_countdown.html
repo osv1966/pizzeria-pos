@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Cassa</title>
+    <style>
+        *{box-sizing:border-box}
+        body{background:#f5f5f5;padding:15px;margin:0;font-family:'Segoe UI',Arial}
+        h1{color:#333;text-align:center;font-size:24px;margin:0 0 20px 0}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+        .tavolo{background:white;border-radius:16px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+        .numero{font-size:24px;font-weight:bold;margin-bottom:8px;color:#333;text-align:center}
+        .riga{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;margin:4px 0;border-radius:12px;font-size:14px;font-weight:bold}
+        .attesa{background:#3498db;color:white}
+        .lavoro{background:#fd7e14;color:white}
+        .pronto{background:#28a745;color:white}
+        .non-disponibile{background:#dc3545;color:white}
+        .footer{text-align:center;padding:15px;color:#666;font-size:11px}
+    </style>
+</head>
+<body>
+    <h1>🍕 STATO TAVOLI</h1>
+    <div class="griglia" id="griglia"></div>
+    <div class="footer">🔄 Aggiornamento ogni 5 secondi | Countdown automatico</div>
+
+    <script>
+        let API_URL='http://'+window.location.hostname+':3000';
+        let timerInterval = null;
+        
+        function calcolaMinutiRimasti(dataAggiornamento, minutiTotali) {
+            if (!dataAggiornamento || !minutiTotali) return minutiTotali || 0;
+            let inizio = new Date(dataAggiornamento);
+            let fine = new Date(inizio.getTime() + minutiTotali * 60000);
+            let ora = new Date();
+            let rimasti = Math.max(0, Math.ceil((fine - ora) / 60000));
+            return rimasti;
+        }
+        
+        async function carica() {
+            let res = await fetch(API_URL+'/api/stati-combinati');
+            let tavoli = await res.json();
+            let html = '';
+            for(let t of tavoli){
+                let minCucina = calcolaMinutiRimasti(t.ultimo_cucina, t.tempo_cucina);
+                let minFrigg = calcolaMinutiRimasti(t.ultimo_friggitoria, t.tempo_friggitoria);
+                
+                html+=`<div class="tavolo">
+                    <div class="numero">🍽️ ${t.tavolo_id}</div>
+                    <div class="riga ${getClasse(t.stato_cucina)}">🍳 ${getTesto(t.stato_cucina, minCucina)}</div>
+                    <div class="riga ${getClasse(t.stato_friggitoria)}">🍟 ${getTesto(t.stato_friggitoria, minFrigg)}</div>
+                </div>`;
+            }
+            document.getElementById('griglia').innerHTML=html;
+        }
+        
+        function getClasse(stato){
+            if(!stato||stato==='in_attesa') return 'attesa';
+            if(stato==='lavorazione') return 'lavoro';
+            if(stato==='pronto') return 'pronto';
+            if(stato==='non_disponibile') return 'non-disponibile';
+            return 'attesa';
+        }
+        
+        function getTesto(stato, tempo){
+            if(!stato||stato==='in_attesa') return 'In attesa';
+            if(stato==='lavorazione') return `In lavoro ${tempo}min`;
+            if(stato==='pronto') return 'Pronto';
+            if(stato==='non_disponibile') return 'Non disp.';
+            return 'In attesa';
+        }
+        
+        carica();
+        setInterval(carica, 5000);
+    </script>
+</body>
+</html>

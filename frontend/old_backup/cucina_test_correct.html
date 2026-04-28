@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Cucina</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body{font-family:Arial;padding:20px;background:#1a1a2e;color:white}
+        button{padding:15px;margin:10px;font-size:18px}
+        .tavolo{display:inline-block;background:#0f3460;margin:5px;padding:10px;border-radius:10px;cursor:pointer;width:70px;text-align:center}
+        .selected{background:#ff6b00}
+        .stats{margin:20px 0}
+        #log{background:#000;padding:10px;margin-top:20px;font-family:monospace;font-size:12px}
+    </style>
+</head>
+<body>
+    <h1>🐛 TEST CUCINA (debug)</h1>
+    <div id="tavoli"></div>
+    <div class="stats">
+        <button onclick="azione('pronto')">✅ PRONTO</button>
+        <button onclick="azione('lavorazione',20)">⏱️ LAVORO 20min</button>
+        <button onclick="inviaFrigg('Patatine',2)">🍟 PATATINE x2</button>
+    </div>
+    <div id="log"></div>
+
+    <script>
+        let API_URL = 'http://' + window.location.hostname + ':3000';
+        let tavoliSelezionati = [];
+        let tavoli = [];
+
+        async function carica() {
+            let res = await fetch(API_URL + '/api/stati-combinati');
+            tavoli = await res.json();
+            let html = '';
+            for (let t of tavoli) {
+                let cls = tavoliSelezionati.includes(t.tavolo_id) ? 'selected' : '';
+                html += `<div class="tavolo ${cls}" onclick="toggle(${t.tavolo_id})">${t.tavolo_id}<br>${t.stato_cucina||'attesa'}</div>`;
+            }
+            document.getElementById('tavoli').innerHTML = html;
+        }
+
+        function toggle(id) {
+            if (tavoliSelezionati.includes(id)) {
+                tavoliSelezionati = [];
+            } else {
+                tavoliSelezionati = [id];
+            }
+            carica();
+        }
+
+        async function azione(stato, minuti=null) {
+            let id = tavoliSelezionati[0];
+            if (!id) { alert('Seleziona un tavolo'); return; }
+            let body = { stato: stato };
+            if (minuti) body.tempo_minuti = minuti;
+            let res = await fetch(API_URL + '/api/stati-cucina/' + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            let data = await res.json();
+            document.getElementById('log').innerHTML = `✅ Cucina: ${JSON.stringify(data)}`;
+            carica();
+        }
+
+        async function inviaFrigg(prodotto, quantita) {
+            let id = tavoliSelezionati[0];
+            if (!id) { alert('Seleziona un tavolo'); return; }
+            
+            document.getElementById('log').innerHTML = `⏳ Invio friggitoria per tavolo ${id}...`;
+            
+            let ordine = {
+                tavolo: id,
+                zona: 'Sala',
+                cliente: 'Test',
+                reparto: 'friggitoria',
+                prodotti: [{ id: 999, nome: prodotto, prezzo: 0, quantita: quantita }]
+            };
+            
+            try {
+                let res1 = await fetch(API_URL + '/api/ordini', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(ordine)
+                });
+                let data1 = await res1.json();
+                
+                let res2 = await fetch(API_URL + '/api/stati-friggitoria/' + id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stato: 'lavorazione', tempo_minuti: 5 })
+                });
+                let data2 = await res2.json();
+                
+                document.getElementById('log').innerHTML = `✅ Friggitoria: ${JSON.stringify(data2)}<br>Ordine: ${JSON.stringify(data1)}`;
+                alert(`✅ ${prodotto} x${quantita} per Tavolo ${id}`);
+                carica();
+            } catch(e) {
+                document.getElementById('log').innerHTML = `❌ Errore: ${e.message}`;
+                alert('Errore');
+            }
+        }
+
+        carica();
+        setInterval(carica, 3000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Cucina</title>
+    <style>
+        *{box-sizing:border-box}
+        body{background:#1a1a2e;padding:15px;margin:0;font-family:'Segoe UI',Arial}
+        h1{color:#ff6b00;text-align:center;margin:0 0 15px 0;font-size:24px}
+        .stats{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+        .stat-card{background:#16213e;padding:8px 15px;border-radius:20px;color:white;text-align:center}
+        .stat-card span{font-size:24px;font-weight:bold;display:block}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(85px,1fr));gap:10px;margin-bottom:20px}
+        .tavolo{border-radius:16px;padding:10px 5px;text-align:center;cursor:pointer;transition:0.1s;border:2px solid transparent}
+        .tavolo:active{transform:scale(0.97)}
+        .tavolo.selected{border-color:#ff6b00}
+        .numero{font-size:20px;font-weight:bold;color:white}
+        .stato{font-size:11px;padding:3px 6px;border-radius:15px;margin-top:5px;display:inline-block}
+        .tempo{font-size:11px;color:#ffd966;margin-top:4px}
+        .attesa-bg{background:#0f3460}
+        .lavoro-bg{background:#fd7e14}
+        .pronto-bg{background:#28a745}
+        .non-disponibile-bg{background:#dc3545}
+        .frigg-box{background:#16213e;border-radius:16px;padding:12px;margin-top:20px;text-align:center}
+        .frigg-btn{background:#fd7e14;color:white;border:none;border-radius:30px;padding:10px 16px;margin:5px;font-size:14px;font-weight:bold;cursor:pointer}
+        .azione-panel{position:fixed;bottom:0;left:0;right:0;background:#16213e;padding:15px;border-top:2px solid #ff6b00;display:none;z-index:1000}
+        .btn-group{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+        .btn{padding:12px 20px;border:none;border-radius:40px;font-size:16px;font-weight:bold;cursor:pointer;flex:1;min-width:90px}
+        .btn-verde{background:#28a745;color:white}
+        .btn-arancio{background:#fd7e14;color:white}
+        .btn-rosso{background:#dc3545;color:white}
+        .btn-grigio{background:#6c757d;color:white}
+        .btn-tempo{background:#17a2b8;color:white}
+        .info-selezione{color:#ddd;text-align:center;margin-bottom:12px}
+    </style>
+</head>
+<body>
+    <h1>👨‍🍳 CUCINA</h1>
+    
+    <div class="stats">
+        <div class="stat-card">⏳ In attesa<br><span id="stat-attesa">0</span></div>
+        <div class="stat-card">🔧 In lavoro<br><span id="stat-lavoro">0</span></div>
+        <div class="stat-card">✅ Pronti<br><span id="stat-pronti">0</span></div>
+    </div>
+    
+    <div class="griglia" id="griglia-tavoli"></div>
+    
+    <div class="frigg-box">
+        <h3 style="color:#fd7e14;margin:0 0 8px 0;">🍟 FRIGGITORIA RAPIDA</h3>
+        <div>
+            <button class="frigg-btn" onclick="inviaFrigg('Patatine',1)">🍟 Patatine x1</button>
+            <button class="frigg-btn" onclick="inviaFrigg('Patatine',2)">🍟 Patatine x2</button>
+            <button class="frigg-btn" onclick="inviaFrigg('Patatine',3)">🍟 Patatine x3</button>
+            <button class="frigg-btn" onclick="inviaFrigg('Crocchette',1)">🍡 Crocchette x1</button>
+            <button class="frigg-btn" onclick="inviaFrigg('Crocchette',2)">🍡 Crocchette x2</button>
+        </div>
+    </div>
+    
+    <div id="azione-panel" class="azione-panel">
+        <div class="info-selezione" id="info-selezione">📋 0 tavoli selezionati</div>
+        <div class="btn-group" id="btn-group-main">
+            <button class="btn btn-verde" onclick="azioneSuTavoli('pronto')">✅ PRONTO</button>
+            <button class="btn btn-arancio" onclick="mostraTempi()">⏱️ IN LAVORAZIONE</button>
+            <button class="btn btn-rosso" onclick="azioneSuTavoli('non_disponibile')">❌ NON DISP.</button>
+            <button class="btn btn-grigio" onclick="annullaSelezione()">ANNULLA</button>
+        </div>
+        <div id="tempi-buttons" style="display:none; margin-top:12px;">
+            <div class="btn-group">
+                <button class="btn btn-tempo" onclick="azioneConTempo(10)">10 min</button>
+                <button class="btn btn-tempo" onclick="azioneConTempo(20)">20 min</button>
+                <button class="btn btn-tempo" onclick="azioneConTempo(30)">30 min</button>
+                <button class="btn btn-tempo" onclick="azioneConTempo(45)">45 min</button>
+                <button class="btn btn-tempo" onclick="azioneConTempo(60)">60 min</button>
+                <button class="btn btn-grigio" onclick="nascondiTempi()">Indietro</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let API_URL = 'http://' + window.location.hostname + ':3000';
+        let tavoliSelezionati = [];
+        
+        async function carica() {
+            let res = await fetch(API_URL + '/api/stati-combinati');
+            let tavoli = await res.json();
+            let html = '';
+            let attesa=0, lavoro=0, pronti=0;
+            
+            for (let t of tavoli) {
+                let stato = t.stato_cucina || 'in_attesa';
+                let bgClass = '';
+                let statoText = '';
+                let tempoHtml = '';
+                
+                if (stato === 'lavorazione') { bgClass = 'lavoro-bg'; statoText = '🔧 Lavoro'; tempoHtml = `<div class="tempo">${t.tempo_cucina} min</div>`; lavoro++; }
+                else if (stato === 'pronto') { bgClass = 'pronto-bg'; statoText = '✅ Pronto'; pronti++; }
+                else if (stato === 'non_disponibile') { bgClass = 'non-disponibile-bg'; statoText = '❌ No'; }
+                else { bgClass = 'attesa-bg'; statoText = '⏳ Attesa'; attesa++; }
+                
+                let selected = tavoliSelezionati.includes(t.tavolo_id) ? 'selected' : '';
+                html += `<div class="tavolo ${bgClass} ${selected}" onclick="toggle(${t.tavolo_id})">
+                            <div class="numero">🍽️ ${t.tavolo_id}</div>
+                            <div class="stato">${statoText}</div>
+                            ${tempoHtml}
+                        </div>`;
+            }
+            document.getElementById('griglia-tavoli').innerHTML = html;
+            document.getElementById('stat-attesa').innerText = attesa;
+            document.getElementById('stat-lavoro').innerText = lavoro;
+            document.getElementById('stat-pronti').innerText = pronti;
+            document.getElementById('info-selezione').innerHTML = `📋 ${tavoliSelezionati.length} tavolo/i selezionati`;
+            document.getElementById('azione-panel').style.display = tavoliSelezionati.length ? 'block' : 'none';
+        }
+        
+        function toggle(id) {
+            if (tavoliSelezionati.includes(id)) {
+                tavoliSelezionati = [];
+            } else {
+                tavoliSelezionati = [id];
+            }
+            carica();
+        }
+        
+        function annullaSelezione() { tavoliSelezionati = []; carica(); }
+        function mostraTempi() { document.getElementById('btn-group-main').style.display = 'none'; document.getElementById('tempi-buttons').style.display = 'block'; }
+        function nascondiTempi() { document.getElementById('btn-group-main').style.display = 'flex'; document.getElementById('tempi-buttons').style.display = 'none'; }
+        
+        async function azioneSuTavoli(stato) {
+            let id = tavoliSelezionati[0];
+            if (!id) return;
+            await fetch(API_URL + '/api/stati-cucina/' + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stato: stato, tempo_minuti: null })
+            });
+            tavoliSelezionati = [];
+            carica();
+            if (stato === 'pronto') new SpeechSynthesisUtterance(`Tavolo ${id}, pronto`).speak();
+        }
+        
+        async function azioneConTempo(minuti) {
+            let id = tavoliSelezionati[0];
+            if (!id) return;
+            await fetch(API_URL + '/api/stati-cucina/' + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stato: 'lavorazione', tempo_minuti: minuti })
+            });
+            tavoliSelezionati = [];
+            nascondiTempi();
+            carica();
+            new SpeechSynthesisUtterance(`Tavolo ${id}, lavoro ${minuti} minuti`).speak();
+        }
+        
+        async function inviaFrigg(prodotto, quantita) {
+            let id = tavoliSelezionati[0];
+            if (!id) { alert('Seleziona un tavolo'); return; }
+            let ordine = { tavolo: id, zona: 'Sala', cliente: '', reparto: 'friggitoria', prodotti: [{ id: 999, nome: prodotto, prezzo: 0, quantita: quantita }] };
+            await fetch(API_URL + '/api/ordini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ordine) });
+            await fetch(API_URL + '/api/stati-friggitoria/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stato: 'lavorazione', tempo_minuti: 5 }) });
+            alert(`✅ ${prodotto} x${quantita} per Tavolo ${id}`);
+            carica();
+        }
+        
+        carica();
+        setInterval(carica, 5000);
+    </script>
+</body>
+</html>

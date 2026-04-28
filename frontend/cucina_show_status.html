@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Cucina - Pizzeria POS</title>
+    <style>
+        *{box-sizing:border-box}
+        body{background:#2c3e50;padding:15px;margin:0;font-family:'Segoe UI',Arial}
+        h1{color:#ff6b00;text-align:center;margin:0 0 15px 0;font-size:24px}
+        
+        .stats{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+        .stat-card{background:#34495e;padding:8px 15px;border-radius:20px;color:white;text-align:center}
+        .stat-card span{font-size:24px;font-weight:bold;display:block}
+        
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:20px}
+        .tavolo{border-radius:16px;padding:12px 5px;text-align:center;cursor:pointer;transition:0.1s;border:2px solid transparent;position:relative}
+        .tavolo:active{transform:scale(0.97)}
+        .tavolo.selected{border-color:#ff6b00}
+        
+        /* BORDO VERDE SPESSO PER ACCETTAZIONE CASSA */
+        .tavolo.accettato-cassa {
+            border: 4px solid #00ff00 !important;
+            box-shadow: 0 0 15px rgba(0,255,0,0.5);
+            animation: pulse 0.5s ease;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        
+        .numero{font-size:20px;font-weight:bold;color:white}
+        .stato{font-size:12px;padding:4px 8px;border-radius:15px;margin-top:6px;display:inline-block}
+        .badge-cassa{font-size:10px;padding:3px 6px;border-radius:10px;margin-top:4px;display:inline-block;background:#333;color:white}
+        .tempo{font-size:11px;color:#ffd966;margin-top:4px}
+        .attesa-bg{background:#3498db}
+        .lavoro-bg{background:#fd7e14}
+        .pronto-bg{background:#28a745}
+        .non-disponibile-bg{background:#dc3545}
+        
+        .frigg-box{background:#34495e;border-radius:16px;padding:12px;margin-top:20px;text-align:center}
+        .frigg-btn{background:#fd7e14;color:white;border:none;border-radius:30px;padding:10px 16px;margin:5px;font-size:14px;font-weight:bold;cursor:pointer}
+        
+        .azione-panel{position:fixed;bottom:0;left:0;right:0;background:#34495e;padding:15px;border-top:2px solid #ff6b00;display:none;z-index:1000}
+        .btn-group{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+        .btn{padding:12px 20px;border:none;border-radius:40px;font-size:16px;font-weight:bold;cursor:pointer;flex:1;min-width:90px}
+        .btn-verde{background:#28a745;color:white}
+        .btn-arancio{background:#fd7e14;color:white}
+        .btn-rosso{background:#dc3545;color:white}
+        .btn-grigio{background:#6c757d;color:white}
+        .btn-tempo{background:#17a2b8;color:white}
+        
+        .info-selezione{color:#ddd;text-align:center;margin-bottom:12px}
+        
+        /* Pannello storico */
+        .storico-panel {
+            position: fixed; 
+            top: 80px; 
+            right: 10px; 
+            width: 220px; 
+            background: #34495e; 
+            border-radius: 10px; 
+            padding: 10px; 
+            color: white; 
+            font-size: 12px; 
+            max-height: 350px; 
+            overflow-y: auto; 
+            z-index: 999; 
+            box-shadow: 0 2px 10px black;
+            border: 1px solid #ff6b00;
+        }
+        .storico-panel h3 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            text-align: center;
+            color: #ff6b00;
+        }
+        .storico-item {
+            padding: 6px;
+            border-bottom: 1px solid #555;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <h1>👨‍🍳 CUCINA</h1>
+    
+    <div style="text-align: center; margin-bottom: 15px;">
+        <button id="btnAttivaVoce" style="background: #ff6b00; color: white; border: none; border-radius: 20px; padding: 8px 20px; font-size: 14px; cursor: pointer;">🔊 Attiva Sintesi Vocale</button>
+    </div>
+    
+    <div class="stats">
+        <div class="stat-card">⏳ Attesa<br><span id="stat-attesa">0</span></div>
+        <div class="stat-card">🔧 Lavoro<br><span id="stat-lavoro">0</span></div>
+        <div class="stat-card">✅ Pronti<br><span id="stat-pronti">0</span></div>
+    </div>
+    
+    <div id="griglia-tavoli" class="griglia"></div>
+    
+    <div class="frigg-box">
+        <button class="frigg-btn" onclick="inviaFrigg('Pizza Margherita',1)">🍕 Margherita</button>
+        <button class="frigg-btn" onclick="inviaFrigg('Pizza Diavola',1)">🌶️ Diavola</button>
+        <button class="frigg-btn" onclick="inviaFrigg('Patatine Fritte',1)">🍟 Patatine</button>
+        <button class="frigg-btn" onclick="inviaFrigg('Coca Cola',1)">🥤 Coca Cola</button>
+    </div>
+    
+    <div id="azionePanel" class="azione-panel">
+        <div class="info-selezione" id="info-selezione">Tavolo selezionato: -</div>
+        <div class="btn-group">
+            <button class="btn btn-verde" onclick="cambiaStato('pronto')">✅ Pronto</button>
+            <button class="btn btn-arancio" onclick="mostraTempi()">⏱️ Lavorazione</button>
+            <button class="btn btn-rosso" onclick="cambiaStato('non_disponibile')">❌ Non disp.</button>
+            <button class="btn btn-grigio" onclick="nascondiTempi()">❌ Annulla</button>
+        </div>
+        <div id="tempiPanel" style="display:none; margin-top:12px">
+            <div class="btn-group">
+                <button class="btn btn-tempo" onclick="azioneConTempo(5)">5 min</button>
+                <button class="btn btn-tempo" onclick="azioneConTempo(10)">10 min</button>
+                <button class="btn btn-tempo" onclick="azioneConTempo(15)">15 min</button>
+                <button class="btn btn-tempo" onclick="azioneConTempo(20)">20 min</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let API_URL = 'http://localhost:3000';
+        let tavoliSelezionati = [];
+        let ultimoTavolo = null;
+        let voceAbilitata = false;
+        
+        // Storico ordini accettati
+        let storicoOrdini = JSON.parse(localStorage.getItem('storicoCucina') || '[]');
+        
+        async function carica() {
+            try {
+                let res = await fetch(`${API_URL}/api/tavoli`);
+                let tavoli = await res.json();
+                let attesa = 0, lavoro = 0, pronti = 0;
+                let html = '';
+                
+                for(let t of tavoli) {
+                    let stato = t.stato;
+                    let statoCassa = t.stato_cassa || 'in_attesa';
+                    let minRimasti = t.tempo_rimasto || 0;
+                    let bgClass = '';
+                    let statoText = '';
+                    let tempoHtml = '';
+                    let badgeCassa = '';
+                    
+                    if(statoCassa === 'accettato') {
+                        badgeCassa = '<div class="badge-cassa">✅ Accettato</div>';
+                    } else if(statoCassa === 'declinato') {
+                        badgeCassa = '<div class="badge-cassa">❌ Declinato</div>';
+                    }
+                    
+                    if(stato === 'lavorazione'){
+                        bgClass = 'lavoro-bg';
+                        statoText = '🔧 Lavoro';
+                        if(minRimasti > 0) tempoHtml = `<div class="tempo">${minRimasti} min</div>`;
+                        lavoro++;
+                    } else if(stato === 'pronto'){
+                        bgClass = 'pronto-bg';
+                        statoText = '✅ Pronto';
+                        pronti++;
+                    } else if(stato === 'non_disponibile'){
+                        bgClass = 'non-disponibile-bg';
+                        statoText = '❌ Non disp.';
+                    } else {
+                        bgClass = 'attesa-bg';
+                        statoText = '⏳ Attesa';
+                        attesa++;
+                    }
+                    
+                    let selected = tavoliSelezionati.includes(t.tavolo_id) ? 'selected' : '';
+                    let cassaAccepted = (statoCassa === 'accettato') ? 'accettato-cassa' : '';
+                    
+                    html += `<div class="tavolo ${bgClass} ${selected} ${cassaAccepted}" onclick="toggle(${t.tavolo_id})">
+                                <div class="numero">🍽️ ${t.tavolo_id}</div>
+                                <div class="stato">${statoText}</div>
+                                ${tempoHtml}
+                                ${badgeCassa}
+                            </div>`;
+                }
+                
+                document.getElementById('griglia-tavoli').innerHTML = html;
+                document.getElementById('stat-attesa').innerText = attesa;
+                document.getElementById('stat-lavoro').innerText = lavoro;
+                document.getElementById('stat-pronti').innerText = pronti;
+                
+            } catch(e) {
+                console.error(e);
+            }
+        }
+        
+        async function toggle(id) {
+            if(tavoliSelezionati.includes(id)) {
+                tavoliSelezionati = [];
+                nascondiTempi();
+            } else {
+                tavoliSelezionati = [id];
+                ultimoTavolo = id;
+            }
+            carica();
+            document.getElementById('info-selezione').innerHTML = `Tavolo selezionato: ${tavoliSelezionati[0] || '-'}`;
+            if(tavoliSelezionati.length > 0) {
+                document.getElementById('azionePanel').style.display = 'block';
+            } else {
+                document.getElementById('azionePanel').style.display = 'none';
+            }
+        }
+        
+        async function cambiaStato(stato) {
+            let id = tavoliSelezionati[0];
+            if(!id) { alert('Seleziona un tavolo'); return; }
+            
+            await fetch(`${API_URL}/api/tavoli/${id}/stato`, {
+                method: 'PUT',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({stato: stato, tempo_minuti: null})
+            });
+            tavoliSelezionati = [id];
+            carica();
+            if(stato === 'pronto' && voceAbilitata) {
+                new SpeechSynthesisUtterance(`Tavolo ${id}, pronto`).speak();
+            }
+        }
+        
+        function mostraTempi() {
+            document.getElementById('tempiPanel').style.display = 'block';
+        }
+        
+        function nascondiTempi() {
+            document.getElementById('tempiPanel').style.display = 'none';
+        }
+        
+        async function azioneConTempo(minuti) {
+            let id = tavoliSelezionati[0];
+            if(!id){ alert('Seleziona un tavolo'); return; }
+            
+            await fetch(`${API_URL}/api/tavoli/${id}/stato`, {
+                method: 'PUT',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({stato: 'lavorazione', tempo_minuti: minuti})
+            });
+            tavoliSelezionati = [id];
+            nascondiTempi();
+            carica();
+            if(voceAbilitata) {
+                new SpeechSynthesisUtterance(`Tavolo ${id}, lavoro ${minuti} minuti`).speak();
+            }
+        }
+        
+        async function inviaFrigg(prodotto, quantita) {
+            let id = tavoliSelezionati[0];
+            if(!id && ultimoTavolo) {
+                id = ultimoTavolo;
+                tavoliSelezionati = [id];
+                carica();
+            }
+            if(!id) {
+                alert('Seleziona un tavolo');
+                return;
+            }
+            
+            await fetch(`${API_URL}/api/aggiungi-ordine`, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    tavolo_id: id,
+                    prodotto: prodotto,
+                    quantita: quantita
+                })
+            });
+            if(voceAbilitata) {
+                new SpeechSynthesisUtterance(`Tavolo ${id}, aggiunto ${prodotto}`).speak();
+            }
+            carica();
+        }
+        
+        // Funzioni per lo storico
+        function aggiungiAStorico(tavoloId) {
+            storicoOrdini.unshift({
+                tavolo: tavoloId,
+                timestamp: new Date().toLocaleTimeString(),
+                data: new Date().toLocaleDateString()
+            });
+            if(storicoOrdini.length > 20) storicoOrdini.pop();
+            localStorage.setItem('storicoCucina', JSON.stringify(storicoOrdini));
+            aggiornaPannelloStorico();
+        }
+        
+        function aggiornaPannelloStorico() {
+            let storicoHtml = '<h3>📜 Storico Accettati</h3>';
+            if(storicoOrdini.length === 0) {
+                storicoHtml += '<div style="text-align:center;color:#999;">Nessun ordine accettato</div>';
+            }
+            storicoOrdini.forEach(item => {
+                storicoHtml += `<div class="storico-item">🍽️ Tavolo ${item.tavolo} - ${item.timestamp}</div>`;
+            });
+            let storicoDiv = document.getElementById('pannello-storico');
+            if(storicoDiv) storicoDiv.innerHTML = storicoHtml;
+        }
+        
+        // Attivazione voce (richiede interazione utente)
+        document.getElementById('btnAttivaVoce').onclick = () => {
+            voceAbilitata = true;
+            const msg = new SpeechSynthesisUtterance("Sintesi vocale attivata");
+            msg.lang = 'it-IT';
+            window.speechSynthesis.speak(msg);
+            document.getElementById('btnAttivaVoce').style.background = '#28a745';
+            document.getElementById('btnAttivaVoce').innerHTML = '🔊 Voce Attiva';
+        };
+        
+        // Monitora cambiamenti di stato_cassa per rilevare accettazioni
+        async function controllaAccettazioni() {
+            try {
+                let res = await fetch(`${API_URL}/api/tavoli`);
+                let tavoli = await res.json();
+                for(let t of tavoli) {
+                    let statoCassaOld = localStorage.getItem(`stato_cassa_${t.tavolo_id}`);
+                    let statoCassaNew = t.stato_cassa || 'in_attesa';
+                    
+                    if(statoCassaNew === 'accettato' && statoCassaOld !== 'accettato') {
+                        // Nuovo ordine accettato dalla cassa!
+                        if(voceAbilitata) {
+                            const msg = new SpeechSynthesisUtterance(`Tavolo ${t.tavolo_id}, ordine accettato dalla cassa`);
+                            msg.lang = 'it-IT';
+                            window.speechSynthesis.speak(msg);
+                        }
+                        aggiungiAStorico(t.tavolo_id);
+                        // Animazione visiva aggiuntiva
+                        carica(); // Ricarica per mostrare bordo verde
+                    }
+                    localStorage.setItem(`stato_cassa_${t.tavolo_id}`, statoCassaNew);
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+        
+        // Aggiungi pannello storico alla pagina
+        const storicoHtmlPanel = `<div id="pannello-storico" class="storico-panel"></div>`;
+        document.body.insertAdjacentHTML('beforeend', storicoHtmlPanel);
+        aggiornaPannelloStorico();
+        
+        // Avvio
+        carica();
+        setInterval(() => {
+            carica();
+            controllaAccettazioni();
+        }, 3000);
+    </script>
+</body>
+</html>

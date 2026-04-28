@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Storico Comunicazioni</title>
+    <style>
+        *{box-sizing:border-box}
+        body{font-family:'Segoe UI',Arial;background:#f5f5f5;padding:15px;margin:0}
+        h1{color:#333;text-align:center;margin:0 0 20px 0}
+        .btn-pulisci{background:#dc3545;color:white;padding:12px;border:none;border-radius:30px;width:100%;margin-bottom:20px;font-size:16px;cursor:pointer}
+        .card{background:white;border-radius:16px;padding:15px;margin-bottom:12px;box-shadow:0 2px 5px rgba(0,0,0,0.1);border-left:5px solid #ff6b00}
+        .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+        .tavolo{font-size:20px;font-weight:bold}
+        .data{color:#666;font-size:12px}
+        .stato{display:inline-block;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:bold}
+        .stato-lavorazione{background:#fd7e14;color:white}
+        .stato-pronto{background:#28a745;color:white}
+        .stato-non-disponibile{background:#dc3545;color:white}
+        .stato-attesa{background:#3498db;color:white}
+        .tempo{color:#ff6b00;font-weight:bold;margin-top:5px;font-size:14px}
+        .footer{text-align:center;padding:15px;color:#666;font-size:11px}
+    </style>
+</head>
+<body>
+    <h1>📜 STORICO COMUNICAZIONI</h1>
+    <button class="btn-pulisci" onclick="pulisciStorico()">🗑️ PULISCI TUTTO LO STORICO</button>
+    <div id="storico-container"></div>
+    <div class="footer">⏱️ Storico ultimi 7 giorni</div>
+
+    <script>
+        let API_URL = 'http://' + '192.168.1.61' + ':3000';
+        
+        async function caricaStorico() {
+            try {
+                let res = await fetch(API_URL + '/api/storico-tutti');
+                let dati = await res.json();
+                let html = '';
+                for(let d of dati) {
+                    let statoClass = '';
+                    let statoText = '';
+                    if(d.stato === 'lavorazione') { statoClass = 'stato-lavorazione'; statoText = '🔧 In lavorazione'; }
+                    else if(d.stato === 'pronto') { statoClass = 'stato-pronto'; statoText = '✅ Pronto'; }
+                    else if(d.stato === 'non_disponibile') { statoClass = 'stato-non-disponibile'; statoText = '❌ Non disponibile'; }
+                    else { statoClass = 'stato-attesa'; statoText = '⏳ In attesa'; }
+                    
+                    html += `<div class="card">
+                        <div class="card-header">
+                            <span class="tavolo">🍽️ Tavolo ${d.tavolo_id}</span>
+                            <span class="data">📅 ${new Date(d.data_ora).toLocaleString()}</span>
+                        </div>
+                        <div><span class="stato ${statoClass}">${statoText}</span></div>
+                        ${d.tempo_minuti ? `<div class="tempo">⏱️ ${d.tempo_minuti} minuti</div>` : ''}
+                        <div style="margin-top:8px; font-size:12px; color:#666;">👤 ${d.operatore || 'cucina'}</div>
+                    </div>`;
+                }
+                document.getElementById('storico-container').innerHTML = html || '<div class="card">📭 Nessuna comunicazione</div>';
+            } catch(e) { console.error(e); }
+        }
+        
+        async function pulisciStorico() {
+            if(!confirm('⚠️ Eliminare TUTTO lo storico?')) return;
+            await fetch(API_URL + '/api/pulisci-storico?giorni=0', { method: 'DELETE' });
+            alert('✅ Storico pulito');
+            caricaStorico();
+        }
+        
+        caricaStorico();
+        setInterval(caricaStorico, 10000);
+    </script>
+</body>
+</html>

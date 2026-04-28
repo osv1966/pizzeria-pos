@@ -1,0 +1,36 @@
+<!-- Bottoni rapidi friggitoria - da includere in cucina.html -->
+<div class="friggitoria-rapida" style="background:#16213e; border-radius: 16px; padding: 15px; margin-bottom: 20px;">
+    <h3 style="color:white; margin:0 0 10px 0;">🍟 FRIGGITORIA - ORDINI RAPIDI</h3>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn-frigg" onclick="ordineFriggitoria('Patatine', 1)">🍟 Patatine x1</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Patatine', 2)">🍟 Patatine x2</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Patatine', 3)">🍟 Patatine x3</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Crocchette', 1)">🍡 Crocchette x1</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Crocchette', 2)">🍡 Crocchette x2</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Arancini', 1)">🍘 Arancini x1</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Arancini', 2)">🍘 Arancini x2</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Supplì', 1)">🍚 Supplì x1</button>
+        <button class="btn-frigg" onclick="ordineFriggitoria('Supplì', 2)">🍚 Supplì x2</button>
+    </div>
+</div>
+<style>
+.btn-frigg { background: #fd7e14; color: white; border: none; border-radius: 30px; padding: 10px 20px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+.btn-frigg:active { transform: scale(0.95); }
+</style>
+<script>
+async function ordineFriggitoria(prodotto, quantita) {
+    let tavolo = tavoloSelezionato || 1;
+    let ordine = {
+        tavolo: tavolo,
+        zona: zonaSelezionata || 'Sala',
+        nome_cliente: document.getElementById('nome_cliente')?.value || '',
+        reparto: 'friggitoria',
+        prodotti: [{ id: 999, nome: prodotto, prezzo: 0, quantita: quantita }]
+    };
+    try {
+        let res = await fetch(API_URL + '/api/ordini', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ordine) });
+        let data = await res.json();
+        if (data.success) alert(`✅ Ordine: ${prodotto} x${quantita} inviato in FRIGGITORIA`);
+    } catch(e) { alert('Errore: ' + e.message); }
+}
+</script>
