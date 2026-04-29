@@ -170,3 +170,13 @@ app.delete('/api/pulisci-storico', (req, res) => {
 
 const PORT = 3000;
 app.listen(PORT, () => console.log(`🚀 Server on ${PORT}`));
+
+// ORDINI FRIGGITORIA (bottoni rapidi)
+app.post('/api/ordini-frigg', (req, res) => {
+    const { tavolo_id, prodotto, quantita } = req.body;
+    db.query('INSERT INTO ordini_frigg (tavolo_id, prodotto, quantita, data_ora) VALUES (?, ?, ?, NOW())', 
+        [tavolo_id, prodotto, quantita], (err, result) => {
+        if (err) return res.status(500).json({error: err.message});
+        res.json({ success: true, id: result.insertId });
+    });
+});
