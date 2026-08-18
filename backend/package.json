@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "dependencies": {
     "cors": "^2.8.6",
-    "express": "^4.22.1",
-    "mysql2": "^3.22.3"
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "mysql2": "^3.23.3"
   }
 }

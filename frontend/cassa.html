@@ -1,142 +1,204 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Cassa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📋 CASSA </title>
     <style>
-        *{box-sizing:border-box}
-        body{background:#f0f2f5;padding:15px;margin:0;font-family:'Segoe UI',Arial}
-        h1{color:#333;text-align:center}
-        .toolbar{display:flex;gap:10px;margin-bottom:20px}
-        .toolbar button{flex:1;padding:15px;border:none;border-radius:50px;font-size:16px;font-weight:bold;cursor:pointer}
-        .btn-reset{background:#ff6b00;color:white}
-        .btn-storico{background:#17a2b8;color:white}
-        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px}
-        .tavolo{background:white;border-radius:20px;padding:15px;box-shadow:0 2px 10px rgba(0,0,0,0.1);transition:0.2s}
-        .bordo-verde{border:3px solid #28a745}
-        .numero{font-size:24px;font-weight:bold;text-align:center;border-bottom:1px solid #eee;padding-bottom:8px;margin-bottom:8px}
-        .reparto{background:#f8f9fa;border-radius:12px;padding:10px;margin:8px 0}
-        .reparto-titolo{font-weight:bold;font-size:13px;margin-bottom:6px}
-        .stato{font-size:13px;margin-top:4px}
-        .lavoro{color:#fd7e14;font-weight:bold}
-        .attesa{color:#6c757d}
-        .pronto{color:#28a745;font-weight:bold}
-        .accettato-testo{color:#28a745;font-weight:bold}
-        .count{font-size:11px;color:#28a745;margin-top:4px}
-        .btn-group{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-        .accetta{background:#28a745;color:white;border:none;border-radius:40px;padding:10px;font-size:14px;font-weight:bold;cursor:pointer}
-        .declina{background:#dc3545;color:white;border:none;border-radius:40px;padding:10px;font-size:14px;font-weight:bold;cursor:pointer}
-        .footer{text-align:center;padding:20px;color:#666;font-size:12px}
-        @media(max-width:600px){.griglia{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}}
-    </style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#3a3a7e;color:#e0e0e0;font-family:system-ui,sans-serif;padding:20px}
+    h1{text-align:center;color:#fff;margin-bottom:20px;font-size:28px}
+    
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:20px;max-width:600px;margin:0 auto 20px}
+    .stat-card{background:#2a2a5e;padding:15px;border-radius:12px;text-align:center;font-size:18px;border:1px solid #3a3a7e}
+    .stat-card span{display:block;font-size:32px;font-weight:bold;color:#ff6b00}
+    
+    #lista-tavoli{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:15px;max-width:1400px;margin:0 auto}
+    .tavolo-card{background:#2a2a5e;border-radius:16px;padding:15px;border:1px solid #3a3a7e}
+    .tavolo-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:18px;font-weight:bold}
+    .tavolo-numero{color:#fff;background:#ff6b00;padding:4px 14px;border-radius:30px}
+    
+    .reparto-row{background:#2a2a5e;border-radius:12px;padding:12px;margin-bottom:10px;border-left:5px solid #666}
+    .reparto-row.cucina{border-left-color:#5dade2;background:#1a2a4e}
+    .reparto-row.pizzeria{border-left-color:#58d68d;background:#1a3a2e}
+    .reparto-row.friggitoria{border-left-color:#f39c12;background:#3a2a1a}
+    .reparto-row.declinato{border-left-color:#e74c3c!important;background:#3d1a1a!important;opacity:0.9}
+    
+    .reparto-icon{font-weight:bold;font-size:14px;margin-bottom:4px}
+    .reparto-row.cucina .reparto-icon{color:#5dade2}
+    .reparto-row.pizzeria .reparto-icon{color:#58d68d}
+    .reparto-row.friggitoria .reparto-icon{color:#f39c12}
+    
+    .countdown{color:#f1c40f;font-size:14px;font-weight:bold}
+    .accettato-badge{color:#2ecc71;font-weight:bold;font-size:13px;padding:4px 12px;border-radius:20px;background:#1a3a2e;display:inline-block;margin-top:5px;border:1px solid #2ecc71;width:auto;max-width:fit-content}
+    .declinato-badge{color:#e74c3c;font-weight:bold;font-size:13px;padding:4px 12px;border-radius:20px;background:#3d1a1a;display:inline-block;margin-top:5px;border:1px solid #e74c3c;width:auto;max-width:fit-content}
+    
+    .btn-group{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+    .btn{flex:0 1 auto;padding:8px 18px;border:none;border-radius:30px;font-size:13px;cursor:pointer;font-weight:bold;white-space:nowrap}
+    .btn-accetta{background:#27ae60;color:white}
+    .btn-accetta:hover{background:#2ecc71}
+    .btn-declina{background:#e74c3c;color:white}
+    .btn-declina:hover{background:#c0392b}
+    
+    .empty{text-align:center;color:#999;padding:40px;font-size:18px}
+    
+    .azioni{text-align:center;margin:15px 0}
+    .btn-reset{background:#e74c3c;color:white;padding:10px 30px;border:none;border-radius:30px;cursor:pointer;font-weight:bold;font-size:16px;margin:5px}
+    .btn-reset:hover{background:#c0392b}
+    .btn-storico{background:#3498db;color:white;padding:10px 30px;border:none;border-radius:30px;cursor:pointer;font-weight:bold;font-size:16px;margin:5px}
+    .btn-storico:hover{background:#2980b9}
+    
+    @media(max-width:600px){#lista-tavoli{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-    <h1>🍕 CASSA</h1>
-    <div class="toolbar">
-        <button class="btn-reset" onclick="resetTavoli()">🔄 RESET</button>
-        <button class="btn-storico" onclick="window.location.href='storico.html'">📜 STORICO</button>
+    <h1>📋 CASSA - Gestione Ordini</h1>
+    
+    <div class="stats">
+        <div class="stat-card">📊 Totale<br><span id="totale">0</span></div>
+        <div class="stat-card">⏳ In attesa<br><span id="in-attesa">0</span></div>
+        <div class="stat-card">✅ Accettati<br><span id="accettati">0</span></div>
     </div>
-    <div class="griglia" id="griglia"></div>
-    <div class="footer">🔄 Aggiornamento ogni 5 secondi</div>
+
+<!-- BOTTONI SOTTO LE STATISTICHE -->
+<div class="azioni" style="text-align:center;margin:15px 0;">
+    <button class="btn-storico" onclick="apriStorico()" style="background:#17a2b8;color:white;padding:10px 30px;border:none;border-radius:30px;cursor:pointer;font-weight:bold;font-size:16px;margin:5px;">📜 STORICO</button>
+    <button class="btn-reset" onclick="resetTavoli()" style="background:#dc3545;color:white;padding:10px 30px;border:none;border-radius:30px;cursor:pointer;font-weight:bold;font-size:16px;margin:5px;">🔄 RESET TAVOLI</button>
+</div>
+ 
+
+    <div id="lista-tavoli"></div>
+   
+
     <script>
-        let API_URL='http://192.168.1.61:3000';
-        
-        function calcolaMinutiRimasti(ultimo,minuti){
-            if(!ultimo||!minuti) return minuti||0;
-            let fine=new Date(new Date(ultimo).getTime()+minuti*60000);
-            let ora=new Date();
-            return Math.max(0,Math.ceil((fine-ora)/60000));
-        }
-        
-        function getRepartoHTML(stato, tempo, ultimo, stato_cassa, reparto, tavolo_id){
-            let min=calcolaMinutiRimasti(ultimo,tempo);
-            let testo='',classe='',bordo='',bottoni='',count='';
-            
-            if(stato_cassa==='accettato'){
-                testo='✅ ACCETTATO';
-                classe='accettato-testo';
-                bordo='bordo-verde';
-                if(stato==='lavorazione') count=`<div class="count">⏱️ ${min}min</div>`;
-                bottoni='';
-            } else if(stato_cassa==='declinato'){
-                testo='❌ DECLINATO';
-                classe='attesa';
-            } else if(stato==='lavorazione'){
-                testo=`🔧 IN LAVORO`;
-                classe='lavoro';
-                count=`<div class="count">⏱️ ${min}min</div>`;
-                bottoni=`<div class="btn-group"><button class="accetta" onclick="accettaReparto(${tavolo_id},'${reparto}')">✅ ACCETTA</button><button class="declina" onclick="declinaReparto(${tavolo_id},'${reparto}')">❌ DECLINA</button></div>`;
-            } else if(stato==='pronto'){
-                testo='✅ PRONTO';
-                classe='pronto';
-            } else if(stato==='non_disponibile'){
-                testo='❌ NON DISP';
-                classe='attesa';
-            } else {
-                testo='⏳ IN ATTESA';
-                classe='attesa';
+        let API_URL = 'http://192.168.1.80:3000';
+
+        function calcolaMinutiRimasti(ultimoAggiornamento, minutiTotali) {
+    if(!minutiTotali || minutiTotali === 0) return 0;
+    if(!ultimoAggiornamento) return minutiTotali;
+    try {
+        let inizio = new Date(ultimoAggiornamento);
+        let fine = new Date(inizio.getTime() + minutiTotali * 60000);
+        let ora = new Date();
+        let rimasti = Math.ceil((fine - ora) / 60000);
+        return rimasti > 0 ? rimasti : 0;
+    } catch(e) {
+        return 0;
+    }
+}
+
+        async function carica() {
+            try {
+                const res = await fetch(API_URL + '/api/tutti-stati');
+                const dati = await res.json();
+                let html = '';
+                let totale = 0, attesa = 0, accettati = 0;
+
+                dati.forEach(t => {
+                    let tavoloHtml = `<div class="tavolo-card">`;
+                    tavoloHtml += `<div class="tavolo-header"><span class="tavolo-numero">🍽️ Tavolo ${t.tavolo_id}</span></div>`;
+
+                    // CUCINA
+                    tavoloHtml += `<div class="reparto-row cucina ${t.stato_cassa_cucina === 'declinato' ? 'declinato' : ''}">`;
+                    tavoloHtml += `<div class="reparto-icon">🍳 CUCINA</div>`;
+                    let cucinaCount = calcolaMinutiRimasti(t.ultimo_cucina, t.tempo_cucina);
+                    if(cucinaCount > 0) tavoloHtml += `<div class="countdown">⏱️ ${cucinaCount} min</div>`;
+                    if(t.stato_cassa_cucina === 'accettato') {
+                        tavoloHtml += `<div class="accettato-badge">✅ ACCETTATO</div>`;
+                        accettati++;
+                    } else if(t.stato_cassa_cucina === 'declinato') {
+                        tavoloHtml += `<div class="declinato-badge">❌ DECLINATO</div>`;
+                    } else if((t.stato_cucina === 'lavorazione' || t.stato_cucina === 'pronto') && t.stato_cassa_cucina !== 'accettato') {
+                        tavoloHtml += `<div class="btn-group"><button class="btn btn-accetta" onclick="window.rispondi(${t.tavolo_id},'cucina','accetta')">✅ ACCETTA</button><button class="btn btn-declina" onclick="window.rispondi(${t.tavolo_id},'cucina','declina')">❌ DECLINA</button></div>`;
+                        attesa++;
+                    }
+                    tavoloHtml += `</div>`;
+
+                    // PIZZERIA
+                    tavoloHtml += `<div class="reparto-row pizzeria ${t.stato_cassa_pizzeria === 'declinato' ? 'declinato' : ''}">`;
+                    tavoloHtml += `<div class="reparto-icon">🍕 PIZZERIA</div>`;
+                    let pizzeriaCount = calcolaMinutiRimasti(t.ultimo_pizzeria, t.tempo_pizzeria);
+                    if(pizzeriaCount > 0) tavoloHtml += `<div class="countdown">⏱️ ${pizzeriaCount} min</div>`;
+                    if(t.stato_cassa_pizzeria === 'accettato') {
+                        tavoloHtml += `<div class="accettato-badge">✅ ACCETTATO</div>`;
+                        accettati++;
+                    } else if(t.stato_cassa_pizzeria === 'declinato') {
+                        tavoloHtml += `<div class="declinato-badge">❌ DECLINATO</div>`;
+                    } else if((t.stato_pizzeria === 'lavorazione' || t.stato_pizzeria === 'pronto') && t.stato_cassa_pizzeria !== 'accettato') {
+                        tavoloHtml += `<div class="btn-group"><button class="btn btn-accetta" onclick="window.rispondi(${t.tavolo_id},'pizzeria','accetta')">✅ ACCETTA</button><button class="btn btn-declina" onclick="window.rispondi(${t.tavolo_id},'pizzeria','declina')">❌ DECLINA</button></div>`;
+                        attesa++;
+                    }
+                    tavoloHtml += `</div>`;
+
+                    // FRIGGITORIA
+                    tavoloHtml += `<div class="reparto-row friggitoria ${t.stato_cassa_friggitoria === 'declinato' ? 'declinato' : ''}">`;
+                    tavoloHtml += `<div class="reparto-icon">🍟 FRIGGITORIA</div>`;
+                    let friggCount = calcolaMinutiRimasti(t.ultimo_friggitoria, t.tempo_friggitoria);
+                    if(friggCount > 0) tavoloHtml += `<div class="countdown">⏱️ ${friggCount} min</div>`;
+                    if(t.stato_cassa_friggitoria === 'accettato') {
+                        tavoloHtml += `<div class="accettato-badge">✅ ACCETTATO</div>`;
+                        accettati++;
+                    } else if(t.stato_cassa_friggitoria === 'declinato') {
+                        tavoloHtml += `<div class="declinato-badge">❌ DECLINATO</div>`;
+                    } else if((t.stato_friggitoria === 'lavorazione' || t.stato_friggitoria === 'pronto') && t.stato_cassa_friggitoria !== 'accettato') {
+                        tavoloHtml += `<div class="btn-group"><button class="btn btn-accetta" onclick="window.rispondi(${t.tavolo_id},'friggitoria','accetta')">✅ ACCETTA</button><button class="btn btn-declina" onclick="window.rispondi(${t.tavolo_id},'friggitoria','declina')">❌ DECLINA</button></div>`;
+                        attesa++;
+                    }
+                    tavoloHtml += `</div>`;
+
+                    tavoloHtml += `</div>`;
+                    html += tavoloHtml;
+                    totale++;
+                });
+
+                document.getElementById('lista-tavoli').innerHTML = html || '<div class="empty">📭 Nessun tavolo</div>';
+                document.getElementById('totale').innerText = totale;
+                document.getElementById('in-attesa').innerText = attesa;
+                document.getElementById('accettati').innerText = accettati;
+            } catch(e) {
+                console.error('Errore carica:', e);
+                document.getElementById('lista-tavoli').innerHTML = '<div class="empty">❌ Errore di connessione al server</div>';
             }
-            
-            return `<div class="reparto ${bordo}">
-                        <div class="reparto-titolo">${reparto==='pizzeria'?'🍕 PIZZERIA':(reparto==='cucina'?'🍔 CUCINA':'🍟 FRIGGITORIA')}</div>
-                        <div class="stato ${classe}">${testo}</div>
-                        ${count}
-                        ${bottoni}
-                    </div>`;
         }
-        
-        async function carica(){
-            let res=await fetch(API_URL+'/api/stati-combinati');
-            let tavoli=await res.json();
-            let html='';
-            for(let t of tavoli){
-                html+=`<div class="tavolo">
-                    <div class="numero">🍽️ Tavolo ${t.tavolo_id}</div>
-                    ${getRepartoHTML(t.stato_pizzeria, t.tempo_pizzeria, t.ultimo_pizzeria, t.stato_cassa_pizzeria, 'pizzeria', t.tavolo_id)}
-                    ${getRepartoHTML(t.stato_cucina, t.tempo_cucina, t.ultimo_cucina, t.stato_cassa, 'cucina', t.tavolo_id)}
-                    ${getRepartoHTML(t.stato_friggitoria, t.tempo_friggitoria, t.ultimo_friggitoria, t.stato_cassa_friggitoria, 'friggitoria', t.tavolo_id)}
-                </div>`;
+
+        async function rispondi(id, reparto, azione) {
+            console.log('🔍 CLICK:', id, reparto, azione);
+            let endpoint = {
+                cucina: '/api/cassa-rispondi/',
+                pizzeria: '/api/cassa-rispondi-pizzeria/',
+                friggitoria: '/api/cassa-rispondi-friggitoria/'
+            }[reparto];
+            try {
+                const response = await fetch(API_URL + endpoint + id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ azione: azione })
+                });
+                const data = await response.json();
+                console.log('✅ Risposta:', data);
+                carica();
+            } catch(error) {
+                console.error('❌ Errore:', error);
+                alert('Errore: ' + error.message);
             }
-            document.getElementById('griglia').innerHTML=html;
         }
-        
-        async function accettaReparto(tavolo, reparto){
-            let endpoint = '';
-            if(reparto==='pizzeria') endpoint = 'cassa-rispondi-pizzeria';
-            else if(reparto==='cucina') endpoint = 'cassa-rispondi';
-            else if(reparto==='friggitoria') endpoint = 'cassa-rispondi-friggitoria';
-            
-            await fetch(API_URL+'/api/'+endpoint+'/'+tavolo,{
-                method:'PUT',
-                headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({azione:'accetta'})
-            });
-            carica();
+
+        window.rispondi = rispondi;
+
+        async function resetTavoli() {
+            if(confirm("⚠️ Resettare TUTTI i tavoli?")) {
+                await fetch(API_URL + '/api/reset-all', { method: 'POST' });
+                carica();
+            }
         }
-        
-        async function declinaReparto(tavolo, reparto){
-            let endpoint = '';
-            if(reparto==='pizzeria') endpoint = 'cassa-rispondi-pizzeria';
-            else if(reparto==='cucina') endpoint = 'cassa-rispondi';
-            else if(reparto==='friggitoria') endpoint = 'cassa-rispondi-friggitoria';
-            
-            await fetch(API_URL+'/api/'+endpoint+'/'+tavolo,{
-                method:'PUT',
-                headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({azione:'declina'})
-            });
-            carica();
+
+        function apriStorico() {
+            window.open('storico.html', '_blank');
         }
-        
-        async function resetTavoli(){
-            if(!confirm('⚠️ Resettare tutti i tavoli?')) return;
-            await fetch(API_URL+'/api/reset-tavoli',{method:'POST'});
-            carica();
-        }
-        
+
         carica();
-        setInterval(carica,5000);
+        setInterval(carica, 3000);
     </script>
 </body>
 </html>
+

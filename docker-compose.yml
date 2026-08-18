@@ -6,10 +6,10 @@ services:
     container_name: pizzeria_mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: pizzeria
-      MYSQL_USER: pizzeria_user
-      MYSQL_PASSWORD: pizza123
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
@@ -22,16 +22,16 @@ services:
     working_dir: /app
     volumes:
       - ./backend:/app
-    command: sh -c "npm install express mysql2 cors && node server.js"
+    command: sh -c "npm install express mysql2 cors dotenv && node server.js"
     ports:
       - "3000:3000"
     depends_on:
       - mysql
     environment:
       DB_HOST: mysql
-      DB_USER: pizzeria_user
-      DB_PASSWORD: pizza123
-      DB_NAME: pizzeria
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
 
   frontend:
     image: nginx:alpine

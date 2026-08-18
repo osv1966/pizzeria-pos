@@ -6,107 +6,229 @@
     <title>Cucina</title>
     <style>
         *{box-sizing:border-box}
-        body{background:#f0f2f5;padding:15px;margin:0;font-family:'Segoe UI',Arial}
-        h1{color:#ff6b00;text-align:center}
-        .stats{display:flex;gap:15px;justify-content:center;margin-bottom:20px}
-        .stat-card{background:white;padding:10px 20px;border-radius:30px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
-        .stat-card span{font-size:28px;font-weight:bold;display:block}
-        .griglia{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px} @media(min-width:700px){.griglia{grid-template-columns:repeat(6,1fr)}} @media(min-width:1024px){.griglia{grid-template-columns:repeat(10,1fr)}}
-        .tavolo{background:#3498db;border-radius:12px;padding:10px 5px;text-align:center;cursor:pointer;border:2px solid transparent}
-        .tavolo.selected{background:#ff6b00}
-        .tavolo.lavoro{background:#fd7e14}
-        .tavolo.pronto{background:#28a745}
-        .tavolo.non-disponibile{background:#dc3545}
-        .tavolo.accettato{border:3px solid #28a745}
-        .tavolo.declinato{border:3px solid #dc3545}
-        .numero{font-size:20px;font-weight:bold;color:white}
-        .stato-testo{font-size:11px;margin-top:4px;color:white}
-        .tempo{font-size:11px;color:#ffd966;margin-top:4px}
-        .badge{background:#28a745;padding:2px 6px;border-radius:12px;font-size:10px;margin-top:4px;display:inline-block}
-        .badge-rosso{background:#dc3545;padding:2px 6px;border-radius:12px;font-size:10px;margin-top:4px;display:inline-block}
-        .pannello{position:fixed;bottom:0;left:0;right:0;background:white;padding:15px;border-top:3px solid #ff6b00;display:none;z-index:1000}
+        body{background:#2c3e50;padding:15px;margin:0;font-family:'Segoe UI',Arial}
+        h1{color:#ff6b00;text-align:center;margin:0 0 15px 0}
+        .stats{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+        .stat-card{background:#34495e;padding:8px 15px;border-radius:20px;color:white;text-align:center}
+        .stat-card span{font-size:24px;font-weight:bold;display:block}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px}
+        .tavolo{border-radius:16px;padding:12px 5px;text-align:center;cursor:pointer;border:2px solid transparent;background:#3498db;color:white;transition:0.1s}
+        .tavolo.selected{border-color:#ff6b00;background:#3d566e}
+        .tavolo.accettato{border:4px solid #00ff00 !important;box-shadow:0 0 15px rgba(0,255,0,0.5)}
+        .tavolo.lavoro-bg{background:#fd7e14}
+        .tavolo.pronto-bg{background:#28a745}
+        .tavolo.non-disponibile { box-shadow: 0 0 15px rgba(255,0,0,0.5); }
+        .numero{font-size:20px;font-weight:bold}
+        .stato{font-size:12px;margin-top:5px}
+        .tempo{font-size:10px;color:#ffd966;margin-top:3px;font-weight:bold}
+        .badge-accettato{background:#28a745;color:white;padding:4px 8px;border-radius:12px;font-size:11px;margin-top:5px;display:inline-block}
+        .azione-panel{position:fixed;bottom:0;left:0;right:0;background:#34495e;padding:15px;display:none;z-index:1000;border-top:2px solid #ff6b00}
         .btn-group{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-        .btn{padding:12px 20px;border:none;border-radius:40px;font-size:14px;font-weight:bold;cursor:pointer}
+        .btn{padding:12px 20px;border:none;border-radius:40px;font-size:16px;font-weight:bold;cursor:pointer;flex:1;min-width:90px}
         .btn-verde{background:#28a745;color:white}
         .btn-arancio{background:#fd7e14;color:white}
         .btn-rosso{background:#dc3545;color:white}
         .btn-grigio{background:#6c757d;color:white}
         .btn-tempo{background:#17a2b8;color:white}
-        .info-selezione{text-align:center;margin-bottom:10px}
+        .tempi-panel{display:none;margin-top:12px}
+       .info-selezione{color:#ddd;text-align:center;margin-bottom:12px}
+       .declinato-bg {
+    background: #3d1a1a !important;
+    border: 3px solid #ff0000 !important;
+    opacity: 0.8;
+}
+.badge-declinato {
+    color: #ff4444;
+    font-weight: bold;
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: #2d1a1a;
+    display: inline-block;
+    border: 1px solid #ff4444;
+    margin-top: 5px;
+}
     </style>
 </head>
 <body>
-    <h1>🍳 CUCINA</h1>
+    <h1>👨‍🍳 CUCINA</h1>
+    
     <div class="stats">
         <div class="stat-card">⏳ In attesa<br><span id="stat-attesa">0</span></div>
         <div class="stat-card">🔧 In lavoro<br><span id="stat-lavoro">0</span></div>
         <div class="stat-card">✅ Pronti<br><span id="stat-pronti">0</span></div>
     </div>
-    <div class="griglia" id="griglia-tavoli"></div>
-    <div class="pannello" id="pannello">
-        <div class="info-selezione" id="info-selezione">📋 0 selezionati</div>
-        <div class="btn-group" id="btn-main">
-            <button class="btn btn-verde" onclick="setStato('pronto')">✅ PRONTO</button>
-            <button class="btn btn-arancio" onclick="mostraTempi()">⏱️ LAVORO</button>
-            <button class="btn btn-rosso" onclick="setStato('non_disponibile')">❌ NON DISP</button>
+    
+    <div id="griglia-tavoli" class="griglia"></div>
+    
+    <div class="azione-panel" id="azione-panel">
+        <div class="info-selezione" id="info-selezione">📋 Nessun tavolo selezionato</div>
+        <div class="btn-group" id="btn-group-main">
+            <button class="btn btn-verde" onclick="cambiaStato('pronto')">✅ PRONTO</button>
+            <button class="btn btn-arancio" onclick="mostraTempi()">⏱️ IN LAVORAZIONE</button>
+            <button class="btn btn-rosso" onclick="cambiaStato('non_disponibile')">❌ NON DISP.</button>
             <button class="btn btn-grigio" onclick="annulla()">ANNULLA</button>
         </div>
-        <div id="tempi-box" style="display:none;margin-top:10px">
+        <div id="tempi-buttons" class="tempi-panel">
             <div class="btn-group">
-                <button class="btn btn-tempo" onclick="setStatoConTempo(10)">10 min</button>
-                <button class="btn btn-tempo" onclick="setStatoConTempo(20)">20 min</button>
-                <button class="btn btn-tempo" onclick="setStatoConTempo(30)">30 min</button>
-                <button class="btn btn-tempo" onclick="setStatoConTempo(45)">45 min</button>
-                <button class="btn btn-tempo" onclick="setStatoConTempo(60)">60 min</button>
-                <button class="btn btn-grigio" onclick="nascondiTempi()">←</button>
+                <button class="btn btn-tempo" onclick="lavorazioneConTempo(10)">10 min</button>
+                <button class="btn btn-tempo" onclick="lavorazioneConTempo(20)">20 min</button>
+                <button class="btn btn-tempo" onclick="lavorazioneConTempo(30)">30 min</button>
+                <button class="btn btn-tempo" onclick="lavorazioneConTempo(45)">45 min</button>
+                <button class="btn btn-tempo" onclick="lavorazioneConTempo(60)">60 min</button>
+                <button class="btn btn-grigio" onclick="nascondiTempi()">◀ Indietro</button>
             </div>
         </div>
     </div>
+
     <script>
-        let API_URL='http://192.168.1.61:3000';
-        let sel=null;
-        function parla(t){let u=new SpeechSynthesisUtterance(t);u.lang='it-IT';speechSynthesis.cancel();speechSynthesis.speak(u);}
-        function calcolaMinutiRimasti(ultimo,minuti){if(!ultimo||!minuti)return minuti||0;let fine=new Date(new Date(ultimo).getTime()+minuti*60000);let ora=new Date();return Math.max(0,Math.ceil((fine-ora)/60000));}
-        async function carica(){
-            let res=await fetch(API_URL+'/api/stati-cucina');
-            let tavoli=await res.json();
-            let html='',a=0,l=0,p=0;
-            for(let t of tavoli){
-                let cls=(sel===t.tavolo_id)?'selected':'';
-                let testo='';
-                let tempoHtml='';
-                let badge='';
-                if(t.stato==='lavorazione'){
-                    cls+=' lavoro';
-                    let r=calcolaMinutiRimasti(t.ultimo_aggiornamento,t.tempo_minuti);
-                    tempoHtml=`<div class="tempo">${r}min</div>`;
-                    if(t.stato_cassa==='accettato'){ cls+=' accettato'; badge='<div class="badge">✅ Accettato</div>'; }
-                    if(t.stato_cassa==='declinato'){ cls+=' declinato'; badge='<div class="badge-rosso">❌ Declinato</div>'; }
-                    l++;
-                } else if(t.stato==='pronto'){
-                    cls+=' pronto';
-                    testo='✅ PRONTO';
-                    p++;
-                } else if(t.stato==='non_disponibile'){
-                    cls+=' non-disponibile';
-                    testo='❌ NON DISP';
-                } else {
-                    a++;
-                }
-                html+=`<div class="tavolo ${cls}" onclick="seleziona(${t.tavolo_id})"><div class="numero">${t.tavolo_id}</div>${tempoHtml}<div class="stato-testo">${testo}</div>${badge}</div>`;
-            }
-            document.getElementById('griglia-tavoli').innerHTML=html;
-            document.getElementById('stat-attesa').innerText=a;document.getElementById('stat-lavoro').innerText=l;document.getElementById('stat-pronti').innerText=p;
-            document.getElementById('info-selezione').innerText=sel?'📋 1 selezionato':'📋 0 selezionati';
-            document.getElementById('pannello').style.display=sel?'block':'none';
+        let API_URL = 'http://192.168.1.80:3000';
+        let tavoloSelezionato = null;
+        let voceAttiva = true;
+        let annunciati = {};
+        
+        function parla(testo) {
+            if(!voceAttiva) return;
+            let msg = new SpeechSynthesisUtterance(testo);
+            msg.lang = 'it-IT';
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(msg);
         }
-        function seleziona(id){sel=id;carica();}
-        function annulla(){sel=null;carica();}
-        function mostraTempi(){document.getElementById('btn-main').style.display='none';document.getElementById('tempi-box').style.display='block';}
-        function nascondiTempi(){document.getElementById('btn-main').style.display='flex';document.getElementById('tempi-box').style.display='none';}
-        async function setStato(stato,minuti=null){if(!sel)return;let body={stato:stato};if(minuti)body.tempo_minuti=minuti;await fetch(API_URL+'/api/stati-cucina/'+sel,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(stato==='pronto')parla(`Tavolo ${sel}, Cucina, pronto`);if(stato==='lavorazione'&&minuti)parla(`Tavolo ${sel}, Cucina, lavorazione ${minuti} minuti`);carica();}
-        async function setStatoConTempo(minuti){await setStato('lavorazione',minuti);nascondiTempi();}
-        carica();setInterval(carica,4000);
+        
+        function calcolaMinutiRimasti(ultimoAggiornamento, minutiTotali) {
+            if(!minutiTotali) return 0;
+            if(!ultimoAggiornamento) return minutiTotali;
+            let inizio = new Date(ultimoAggiornamento);
+            let fine = new Date(inizio.getTime() + minutiTotali * 60000);
+            let ora = new Date();
+            let rimasti = Math.ceil((fine - ora) / 60000);
+            return rimasti > 0 ? rimasti : 0;
+        }
+        
+        async function carica() {
+    try {
+        let res = await fetch(API_URL + '/api/stati-cucina');
+        let tavoli = await res.json();
+        let html = '';
+        let attesa=0, lavoro=0, pronti=0;
+
+        for(let t of tavoli) {
+            let cls = '';
+            let statoText = '';
+            let tempoHtml = '';
+            let badgeAccettato = '';
+            let badgeDeclinato = '';
+            let minRimasti = calcolaMinutiRimasti(t.ultimo_aggiornamento, t.tempo_minuti);
+
+            // CONTROLLA PRIMA SE È DECLINATO
+            if(t.stato_cassa === 'declinato') {
+                cls = 'declinato-bg';
+                statoText = '❌ DECLINATO';
+                badgeDeclinato = '<div class="badge-declinato">❌ DECLINATO DALLA CASSA</div>';
+            }
+            else if(t.stato === 'lavorazione') {
+                cls = 'lavoro-bg';
+                statoText = '🔧 Lavoro';
+                if(minRimasti > 0) tempoHtml = `<div class="tempo">⏱️ ${minRimasti} min</div>`;
+                lavoro++;
+            }
+            else if(t.stato === 'pronto') {
+                cls = 'pronto-bg';
+                statoText = '✅ Pronto';
+                pronti++;
+                if(voceAttiva && !annunciati[`pronto_${t.tavolo_id}`]) {
+                    annunciati[`pronto_${t.tavolo_id}`] = true;
+                    parla(`Tavolo ${t.tavolo_id}, pronto`);
+                }
+            }
+            else if(t.stato === 'non_disponibile') {
+                cls = 'non-disponibile-bg';
+                statoText = '❌ Non disp.';
+            }
+            else {
+                cls = 'attesa-bg';
+                statoText = '⏳ Attesa';
+                attesa++;
+            }
+
+            if(t.stato_cassa === 'accettato') {
+                cls += ' accettato';
+                badgeAccettato = '<div class="badge-accettato">✅ Accettato</div>';
+                if(voceAttiva && !annunciati[`accettato_${t.tavolo_id}`]) {
+                    annunciati[`accettato_${t.tavolo_id}`] = true;
+                    parla(`Tavolo ${t.tavolo_id}, ordine accettato`);
+                }
+            }
+
+            let selected = (tavoloSelezionato === t.tavolo_id) ? 'selected' : '';
+            html += `<div class="tavolo ${cls} ${selected}" onclick="seleziona(${t.tavolo_id})">
+                        <div class="numero">🍽️ ${t.tavolo_id}</div>
+                        <div class="stato">${statoText}</div>
+                        ${tempoHtml}
+                        ${badgeAccettato}
+                        ${badgeDeclinato}
+                    </div>`;
+        }
+        document.getElementById('griglia-tavoli').innerHTML = html;
+        document.getElementById('stat-attesa').innerText = attesa;
+        document.getElementById('stat-lavoro').innerText = lavoro;
+        document.getElementById('stat-pronti').innerText = pronti;
+    } catch(e) { console.error(e); }
+}
+        
+        function seleziona(id) {
+            tavoloSelezionato = id;
+            document.getElementById('info-selezione').innerHTML = `📋 Tavolo ${id} selezionato`;
+            document.getElementById('azione-panel').style.display = 'block';
+            document.getElementById('btn-group-main').style.display = 'flex';
+            document.getElementById('tempi-buttons').style.display = 'none';
+            carica();
+        }
+        
+        function mostraTempi() {
+            document.getElementById('btn-group-main').style.display = 'none';
+            document.getElementById('tempi-buttons').style.display = 'block';
+        }
+        
+        function nascondiTempi() {
+            document.getElementById('btn-group-main').style.display = 'flex';
+            document.getElementById('tempi-buttons').style.display = 'none';
+        }
+        
+        async function cambiaStato(stato) {
+            if(!tavoloSelezionato) return;
+            await fetch(API_URL + '/api/stati-cucina/' + tavoloSelezionato, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({stato: stato, tempo_minuti: null})
+            });
+            if(stato === 'pronto') parla(`Tavolo ${tavoloSelezionato}, pronto`);
+            tavoloSelezionato = null;
+            document.getElementById('azione-panel').style.display = 'none';
+            carica();
+        }
+        
+        async function lavorazioneConTempo(minuti) {
+            if(!tavoloSelezionato) return;
+            await fetch(API_URL + '/api/stati-cucina/' + tavoloSelezionato, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({stato: 'lavorazione', tempo_minuti: minuti})
+            });
+            parla(`In lavorazione. Tavolo ${tavoloSelezionato}, lavoro ${minuti} minuti`);
+            tavoloSelezionato = null;
+            document.getElementById('azione-panel').style.display = 'none';
+            carica();
+        }
+        
+        function annulla() {
+            tavoloSelezionato = null;
+            document.getElementById('azione-panel').style.display = 'none';
+            carica();
+        }
+        
+        carica();
+        setInterval(carica, 3000);
     </script>
 </body>
 </html>
