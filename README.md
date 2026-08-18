@@ -16,14 +16,14 @@ Sistema basato su Docker con 3 container:
 
 ## 🚀 AVVIO DEL SISTEMA
 cd /mnt/c/Users/Utente/Desktop/PizzeriaFinale
-docker-compose up -d
+./start.sh
 
 ## 🌐 ACCESSO
-CUCINA: http://192.168.1.61:8080/cucina.html
-PIZZERIA: http://192.168.1.61:8080/pizzeria.html
-FRIGGITORIA: http://192.168.1.61:8080/friggitoria.html
-CASSA: http://192.168.1.61:8080/cassa.html
-STORICO: http://192.168.1.61:8080/storico.html
+CUCINA: http://192.168.1.80:8080/cucina.html
+PIZZERIA: http://192.168.1.80:8080/pizzeria.html
+FRIGGITORIA: http://192.168.1.80:8080/friggitoria.html
+CASSA: http://192.168.1.80:8080/cassa.html
+STORICO: http://192.168.1.80:8080/storico.html
 
 ## 📱 RESPONSIVITÀ
 Cellulare: 4 colonne
@@ -42,13 +42,18 @@ Desktop: 10 colonne
 
 ## 🔧 COMANDI UTILI
 Reset manuale tavoli:
-curl -X POST http://192.168.1.61:3000/api/reset-tavoli
+curl -X POST http://192.168.1.80:3000/api/reset-tavoli
 
-Backup database:
-docker exec pizzeria_mysql mysqldump -upizzeria_user -ppizza123 pizzeria > backup.sql
+Backup database (le credenziali sono lette dal file .env nella root del progetto):
+set -a && source .env && set +a
+docker exec pizzeria_mysql mysqldump -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" > backup.sql
 
 Log:
 docker-compose logs -f
+
+## 🔐 CONFIGURAZIONE
+Le credenziali del database si trovano nel file `.env` nella root del progetto
+(NON versionato su Git — vedi `.env.example` per il formato richiesto).
 
 ## 🛠️ PERSONALIZZAZIONE
 Modificare i file HTML per cambiare il numero di colonne
