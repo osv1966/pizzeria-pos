@@ -135,6 +135,13 @@
                     tavoloHtml += `<div class="reparto-icon">🍟 FRIGGITORIA</div>`;
                     let friggCount = calcolaMinutiRimasti(t.ultimo_friggitoria, t.tempo_friggitoria);
                     if(friggCount > 0) tavoloHtml += `<div class="countdown">⏱️ ${friggCount} min</div>`;
+                    if(t.prodotti_frigg) {
+                        try {
+                            let prodottiArr = JSON.parse(t.prodotti_frigg);
+                            let prodottiText = prodottiArr.map(p => p.prodotto + ' x' + p.quantita).join(', ');
+                            tavoloHtml += `<div class="countdown" style="color:#ffd966;">🛒 ${prodottiText}</div>`;
+                        } catch(e) {}
+                    }
                     if(t.stato_cassa_friggitoria === 'accettato') {
                         tavoloHtml += `<div class="accettato-badge">✅ ACCETTATO</div>`;
                         accettati++;

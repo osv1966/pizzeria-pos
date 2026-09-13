@@ -184,6 +184,12 @@
             let carrelloHtml = '';
             if(carrello[t.tavolo_id] && carrello[t.tavolo_id].length > 0) {
                 carrelloHtml = `<div class="tempo" style="color:#ffd966;">🛒 ${carrello[t.tavolo_id].map(p => p.prodotto + ' x' + p.quantita).join(", ")}</div>`;
+            } else if(t.prodotti) {
+                try {
+                    let prodottiArr = JSON.parse(t.prodotti);
+                    let prodottiText = prodottiArr.map(p => p.prodotto + ' x' + p.quantita).join(', ');
+                    carrelloHtml = `<div class="tempo" style="color:#ffd966;">🛒 ${prodottiText}</div>`;
+                } catch(e) {}
             }
             html += `<div class="tavolo ${cls} ${selected}" onclick="seleziona(${t.tavolo_id})">
                         <div class="numero">🍽️ ${t.tavolo_id}</div>

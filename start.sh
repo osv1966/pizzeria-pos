@@ -8,6 +8,8 @@ docker cp ./frontend/. pizzeria_frontend:/usr/share/nginx/html/ &&
 docker cp ./pizzeria.html pizzeria_frontend:/usr/share/nginx/html/ &&
 docker cp ./cucina.html pizzeria_frontend:/usr/share/nginx/html/ &&
 docker cp ./friggitoria.html pizzeria_frontend:/usr/share/nginx/html/ &&
+docker cp ./frontend/cassa.html pizzeria_frontend:/usr/share/nginx/html/ &&
+docker cp ./frontend/storico.html pizzeria_frontend:/usr/share/nginx/html/ &&
 # Ricarichiamo Nginx
 docker exec -it pizzeria_frontend nginx -s reload &&
 echo "✅ Pizzeria avviata!"
