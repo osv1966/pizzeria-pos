@@ -1,6 +1,4 @@
-﻿version: '3.8'
-
-services:
+﻿services:
   mysql:
     image: mysql:8
     container_name: pizzeria_mysql
