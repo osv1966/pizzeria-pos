@@ -14,4 +14,4 @@ docker cp ./frontend/storico.html pizzeria_frontend:/usr/share/nginx/html/ &&
 docker exec -it pizzeria_frontend nginx -s reload &&
 echo "✅ Pizzeria avviata!"
 echo "📱 Apri la cassa dal telefono all'indirizzo:"
-echo "http://192.168.1.80:8080/cassa.html"
+echo "http://192.168.1.12:8080/cassa.html"

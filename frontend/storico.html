@@ -97,7 +97,7 @@
     <div id="storico-container" class="storico-container"></div>
 
     <script>
-        let API_URL = 'http://localhost:3000';
+        let API_URL = 'http://' + window.location.hostname + ':3000';
         
         async function caricaStorico() {
             try {

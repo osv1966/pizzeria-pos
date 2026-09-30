@@ -19,11 +19,11 @@ cd /mnt/c/Users/Utente/Desktop/PizzeriaFinale
 ./start.sh
 
 ## 🌐 ACCESSO
-CUCINA: http://192.168.1.80:8080/cucina.html
-PIZZERIA: http://192.168.1.80:8080/pizzeria.html
-FRIGGITORIA: http://192.168.1.80:8080/friggitoria.html
-CASSA: http://192.168.1.80:8080/cassa.html
-STORICO: http://192.168.1.80:8080/storico.html
+CUCINA: http://192.168.1.12:8080/cucina.html
+PIZZERIA: http://192.168.1.12:8080/pizzeria.html
+FRIGGITORIA: http://192.168.1.12:8080/friggitoria.html
+CASSA: http://192.168.1.12:8080/cassa.html
+STORICO: http://192.168.1.12:8080/storico.html
 
 ## 📱 RESPONSIVITÀ
 Cellulare: 4 colonne
@@ -42,7 +42,7 @@ Desktop: 10 colonne
 
 ## 🔧 COMANDI UTILI
 Reset manuale tavoli:
-curl -X POST http://192.168.1.80:3000/api/reset-tavoli
+curl -X POST http://192.168.1.12:3000/api/reset-tavoli
 
 Backup database (le credenziali sono lette dal file .env nella root del progetto):
 set -a && source .env && set +a

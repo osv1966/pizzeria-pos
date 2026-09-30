@@ -44,3 +44,5 @@
 
 volumes:
   mysql_data:
+    external: true
+    name: cartellafinalepizzeria_mysql_data
