@@ -29,10 +29,11 @@ else
     echo -e "${YELLOW}⚠️  controlla.sh non trovato, salto il controllo${NC}"
 fi
 
-# --- 2. Trova IP ---
+# --- 2. Trova IP (versione robusta) ---
 echo -e "${YELLOW}[2/4]${NC} Ricerca IP della rete..."
+
 IP=$(ipconfig.exe 2>/dev/null \
-    | sed -n '/Wi-Fi/,/^$/p' \
+    | grep -A 8 "Wi-Fi" \
     | grep "IPv4" \
     | grep -v "127.0.0.1" \
     | awk -F': ' '{print $2}' \
@@ -41,7 +42,7 @@ IP=$(ipconfig.exe 2>/dev/null \
 
 if [ -z "$IP" ]; then
     IP=$(ipconfig.exe 2>/dev/null \
-        | sed -n '/Ethernet/,/^$/p' \
+        | grep -A 8 "Ethernet" \
         | grep "IPv4" \
         | grep -v "127.0.0.1" \
         | awk -F': ' '{print $2}' \
