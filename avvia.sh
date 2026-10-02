@@ -16,17 +16,17 @@ echo -e "${BLUE}   🍕  PizzeriaOperativa - Avvio rapido${NC}"
 echo -e "${BLUE}================================================${NC}"
 echo ""
 
-# --- 1. Controllo + eventuale riparazione ---
-if [ -x "./controlla.sh" ]; then
-    echo -e "${YELLOW}[1/4]${NC} Controllo stato progetto..."
-    if ! ./controlla.sh; then
+# --- 1. Diagnostica + eventuale riparazione ---
+if [ -x "./diagnostica.sh" ]; then
+    echo -e "${YELLOW}[1/4]${NC} Diagnostica progetto..."
+    if ! ./diagnostica.sh; then
         echo ""
         echo -e "${RED}❌ Il progetto non funziona. Risolvi prima i problemi.${NC}"
         exit 1
     fi
     echo ""
 else
-    echo -e "${YELLOW}⚠️  controlla.sh non trovato, salto il controllo${NC}"
+    echo -e "${YELLOW}⚠️  diagnostica.sh non trovato, salto il controllo${NC}"
 fi
 
 # --- 2. Trova IP (versione robusta) ---
