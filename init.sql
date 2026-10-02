@@ -38,6 +38,31 @@ CREATE TABLE IF NOT EXISTS stati_tavoli_friggitoria (
   FOREIGN KEY (tavolo_id) REFERENCES tavoli(id)
 );
 
+CREATE TABLE IF NOT EXISTS storico_ordini (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  tavolo_id INT NOT NULL,
+  reparto VARCHAR(50) NOT NULL,
+  azione VARCHAR(50) NOT NULL,
+  data_ora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS storico_stati (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  tavolo_id INT,
+  reparto VARCHAR(50),
+  stato VARCHAR(50),
+  data_ora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS ordini_friggitoria (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  tavolo_id INT NOT NULL,
+  prodotti TEXT,
+  data_ora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  stato VARCHAR(50) DEFAULT 'lavorazione',
+  tempo_minuti INT DEFAULT NULL
+);
+
 INSERT INTO tavoli (numero) VALUES
 (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),
 (11),(12),(13),(14),(15),(16),(17),(18),(19),(20),
