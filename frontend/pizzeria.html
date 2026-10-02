@@ -86,13 +86,37 @@
         let voceAttiva = true;
         let annunciati = {};
         
-        function parla(testo) {
-            if(!voceAttiva) return;
-            let msg = new SpeechSynthesisUtterance(testo);
-            msg.lang = 'it-IT';
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(msg);
-        }
+        let voceScelta = null;
+
+function trovaVoceFemminile() {
+    const voci = speechSynthesis.getVoices();
+    if(!voci || voci.length === 0) return null;
+    const preferite = ['Elsa', 'Isabella', 'Alice', 'Federica', 'Female', 'Donna'];
+    for(let nome of preferite) {
+        const v = voci.find(x => x.lang.startsWith('it') && x.name.toLowerCase().includes(nome.toLowerCase()));
+        if(v) return v;
+    }
+    return voci.find(x => x.lang.startsWith('it')) || null;
+}
+
+if('speechSynthesis' in window) {
+    speechSynthesis.onvoiceschanged = () => { voceScelta = trovaVoceFemminile(); };
+    voceScelta = trovaVoceFemminile();
+}
+
+function parla(testo) {
+    if(!voceAttiva) return;
+    if(!('speechSynthesis' in window)) return;
+    let msg = new SpeechSynthesisUtterance(testo);
+    msg.lang = 'it-IT';
+    msg.rate = 0.95;
+    msg.pitch = 1.4;
+    msg.volume = 1.0;
+    if(!voceScelta) voceScelta = trovaVoceFemminile();
+    if(voceScelta) msg.voice = voceScelta;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(msg);
+}
         
         function calcolaMinutiRimasti(ultimoAggiornamento, minutiTotali) {
             if(!minutiTotali) return 0;

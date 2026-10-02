@@ -72,6 +72,52 @@
 
     <script>
         let API_URL = 'http://' + window.location.hostname + ':3000';
+                // === VOCE ===
+        let voceAttiva = true;
+        let voceScelta = null;
+        let annunciati = {};
+        let codaVocale = [];
+        let inPronuncia = false;
+
+        function trovaVoceFemminile() {
+            const voci = speechSynthesis.getVoices();
+            if(!voci || voci.length === 0) return null;
+            const preferite = ['Elsa', 'Isabella', 'Alice', 'Federica', 'Female', 'Donna'];
+            for(let nome of preferite) {
+                const v = voci.find(x => x.lang.startsWith('it') && x.name.toLowerCase().includes(nome.toLowerCase()));
+                if(v) return v;
+            }
+            return voci.find(x => x.lang.startsWith('it')) || null;
+        }
+
+        if('speechSynthesis' in window) {
+            speechSynthesis.onvoiceschanged = () => { voceScelta = trovaVoceFemminile(); };
+            voceScelta = trovaVoceFemminile();
+        }
+
+        function processaCoda() {
+            if(inPronuncia || codaVocale.length === 0) return;
+            inPronuncia = true;
+            const testo = codaVocale.shift();
+            const msg = new SpeechSynthesisUtterance(testo);
+            msg.lang = "it-IT";
+            msg.rate = 0.95;
+            msg.pitch = 1.4;
+            msg.volume = 1.0;
+            if(!voceScelta) voceScelta = trovaVoceFemminile();
+            if(voceScelta) msg.voice = voceScelta;
+            msg.onend = () => { inPronuncia = false; setTimeout(processaCoda, 400); };
+            msg.onerror = () => { inPronuncia = false; setTimeout(processaCoda, 400); };
+            window.speechSynthesis.speak(msg);
+            setTimeout(() => { if(inPronuncia && !window.speechSynthesis.speaking) { inPronuncia = false; processaCoda(); } }, 8000);
+        }
+        function parla(testo) {
+            if(!voceAttiva) return;
+            if(!("speechSynthesis" in window)) return;
+            codaVocale.push(testo);
+            processaCoda();
+        }
+
 
         function calcolaMinutiRimasti(ultimoAggiornamento, minutiTotali) {
     if(!minutiTotali || minutiTotali === 0) return 0;
@@ -109,7 +155,7 @@
                     } else if(t.stato_cassa_cucina === 'declinato') {
                         tavoloHtml += `<div class="declinato-badge">❌ DECLINATO</div>`;
                     } else if((t.stato_cucina === 'lavorazione' || t.stato_cucina === 'pronto') && t.stato_cassa_cucina !== 'accettato') {
-                        tavoloHtml += `<div class="btn-group"><button class="btn btn-accetta" onclick="window.rispondi(${t.tavolo_id},'cucina','accetta')">✅ ACCETTA</button><button class="btn btn-declina" onclick="window.rispondi(${t.tavolo_id},'cucina','declina')">❌ DECLINA</button></div>`;
+                        if(!annunciati["nuovo_" + t.tavolo_id + "_cucina"]){ annunciati["nuovo_" + t.tavolo_id + "_cucina"] = true; parla(`Nuovo Ordine, Tavolo ${t.tavolo_id}, Cucina`); } tavoloHtml += `<div class="btn-group"><button class="btn btn-accetta" onclick="window.rispondi(${t.tavolo_id},'cucina','accetta')">✅ ACCETTA</button><button class="btn btn-declina" onclick="window.rispondi(${t.tavolo_id},'cucina','declina')">❌ DECLINA</button></div>`;
                         attesa++;
                     }
                     tavoloHtml += `</div>`;
@@ -125,7 +171,7 @@
                     } else if(t.stato_cassa_pizzeria === 'declinato') {
                         tavoloHtml += `<div class="declinato-badge">❌ DECLINATO</div>`;
                     } else if((t.stato_pizzeria === 'lavorazione' || t.stato_pizzeria === 'pronto') && t.stato_cassa_pizzeria !== 'accettato') {
-                        tavoloHtml += `<div class="btn-group"><button class="btn btn-accetta" onclick="window.rispondi(${t.tavolo_id},'pizzeria','accetta')">✅ ACCETTA</button><button class="btn btn-declina" onclick="window.rispondi(${t.tavolo_id},'pizzeria','declina')">❌ DECLINA</button></div>`;
+                        if(!annunciati["nuovo_" + t.tavolo_id + "_pizzeria"]){ annunciati["nuovo_" + t.tavolo_id + "_pizzeria"] = true; parla(`Nuovo Ordine, Tavolo ${t.tavolo_id}, Pizzeria`); } tavoloHtml += `<div class="btn-group"><button class="btn btn-accetta" onclick="window.rispondi(${t.tavolo_id},'pizzeria','accetta')">✅ ACCETTA</button><button class="btn btn-declina" onclick="window.rispondi(${t.tavolo_id},'pizzeria','declina')">❌ DECLINA</button></div>`;
                         attesa++;
                     }
                     tavoloHtml += `</div>`;
@@ -148,8 +194,8 @@
                     } else if(t.stato_cassa_friggitoria === 'declinato') {
                         tavoloHtml += `<div class="declinato-badge">❌ DECLINATO</div>`;
                     } else if((t.stato_friggitoria === 'lavorazione' || t.stato_friggitoria === 'pronto') && t.stato_cassa_friggitoria !== 'accettato') {
-                        tavoloHtml += `<div class="btn-group"><button class="btn btn-accetta" onclick="window.rispondi(${t.tavolo_id},'friggitoria','accetta')">✅ ACCETTA</button><button class="btn btn-declina" onclick="window.rispondi(${t.tavolo_id},'friggitoria','declina')">❌ DECLINA</button></div>`;
                         attesa++;
+                        if(!annunciati["nuovo_" + t.tavolo_id + "_friggitoria"]){ annunciati["nuovo_" + t.tavolo_id + "_friggitoria"] = true; parla(`Nuovo Ordine, Tavolo ${t.tavolo_id}, Friggitoria`); } tavoloHtml += `<div class="btn-group"><button class="btn btn-accetta" onclick="window.rispondi(${t.tavolo_id},'friggitoria','accetta')">✅ ACCETTA</button><button class="btn btn-declina" onclick="window.rispondi(${t.tavolo_id},'friggitoria','declina')">❌ DECLINA</button></div>`;
                     }
                     tavoloHtml += `</div>`;
 
@@ -183,6 +229,7 @@
                 });
                 const data = await response.json();
                 console.log('✅ Risposta:', data);
+                parla(`Tavolo ${id} ${azione === 'accetta' ? 'accettato' : 'declinato'}, ${reparto}`);
                 carica();
             } catch(error) {
                 console.error('❌ Errore:', error);
