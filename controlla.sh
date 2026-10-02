@@ -42,7 +42,7 @@ else
     echo -e "${YELLOW}     → Riavvio i container da zero...${NC}"
     docker compose down >/dev/null 2>&1
     docker compose up -d >/dev/null 2>&1
-    sleep 20
+    sleep 45
     UP_COUNT=$(docker compose ps 2>/dev/null | grep -c "Up" || true)
     if [ "$UP_COUNT" -eq 3 ]; then
         echo -e "${GREEN}     ✅ Riparato (3/3)${NC}"
@@ -63,7 +63,7 @@ else
     echo -e "${YELLOW}     → Provo a riavviare il backend...${NC}"
     docker compose down >/dev/null 2>&1
     docker compose up -d >/dev/null 2>&1
-    sleep 25
+    sleep 45
     CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:3000/api/tutti-stati 2>/dev/null)
     if [ "$CODE" = "200" ]; then
         echo -e "${GREEN}     ✅ Riparato (200)${NC}"
