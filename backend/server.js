@@ -103,8 +103,10 @@ app.get('/api/stati-completi', (req, res) => {
         SELECT t.id as tavolo_id,
                COALESCE(p.stato_cassa, 'in_attesa') as pizzeria_stato,
                p.data_declino_pizzeria as pizzeria_data_declino,
+               p.data_ripresa as pizzeria_data_ripresa,
                COALESCE(c.stato_cassa, 'in_attesa') as cucina_stato,
                c.data_declino_cucina as cucina_data_declino,
+               c.data_ripresa as cucina_data_ripresa,
                COALESCE(f.stato_cassa, 'in_attesa') as friggitoria_stato,
                f.data_declino_friggitoria as friggitoria_data_declino,
                f.prodotti as friggitoria_prodotti
@@ -267,14 +269,26 @@ app.put('/api/cassa-rispondi-friggitoria/:id', (req, res) => {
 
 // Pizzeria accetta tavolo
 app.put('/api/pizzeria-accetta/:id', (req, res) => {
-    db.query('UPDATE stati_tavoli_pizzeria SET stato_cassa = ?, data_declino_pizzeria = NULL WHERE tavolo_id = ?', ['accettato', req.params.id], (err) => {
+    // 1. Leggi lo stato attuale
+    db.query('SELECT stato_cassa FROM stati_tavoli_pizzeria WHERE tavolo_id = ?', [req.params.id], (err, rows) => {
         if (err) return res.status(500).json({error: err.message});
-        db.query('INSERT INTO storico_ordini (tavolo_id, reparto, azione, data_ora) VALUES (?, "pizzeria", "accettato", NOW())', [req.params.id], (err2) => {
-            if (err2) console.log('Errore storico:', err2);
-            res.json({ success: true });
+        
+        let eraDeclinato = rows.length > 0 && rows[0].stato_cassa === 'declinato';
+        let dataRipresa = eraDeclinato ? new Date() : null;
+        
+        // 2. Aggiorna lo stato
+        db.query('UPDATE stati_tavoli_pizzeria SET stato_cassa = ?, data_declino_pizzeria = NULL, data_ripresa = ? WHERE tavolo_id = ?', ['accettato', dataRipresa, req.params.id], (err2) => {
+            if (err2) return res.status(500).json({error: err2.message});
+            db.query('INSERT INTO storico_ordini (tavolo_id, reparto, azione, data_ora) VALUES (?, "pizzeria", "accettato", NOW())', [req.params.id], (err3) => {
+                if (err3) console.log('Errore storico:', err3);
+                res.json({ success: true, ripresa: eraDeclinato });
+            });
         });
     });
 });
+
+
+
 
 // Pizzeria declina tavolo
 app.put('/api/pizzeria-declina/:id', (req, res) => {
@@ -288,15 +302,26 @@ app.put('/api/pizzeria-declina/:id', (req, res) => {
 });
 
 // Cucina accetta tavolo
+// Cucina accetta tavolo
 app.put('/api/cucina-accetta/:id', (req, res) => {
-    db.query('UPDATE stati_tavoli_cucina SET stato_cassa = ?, data_declino_cucina = NULL WHERE tavolo_id = ?', ['accettato', req.params.id], (err) => {
+    // 1. Leggi lo stato attuale
+    db.query('SELECT stato_cassa FROM stati_tavoli_cucina WHERE tavolo_id = ?', [req.params.id], (err, rows) => {
         if (err) return res.status(500).json({error: err.message});
-        db.query('INSERT INTO storico_ordini (tavolo_id, reparto, azione, data_ora) VALUES (?, "cucina", "accettato", NOW())', [req.params.id], (err2) => {
-            if (err2) console.log('Errore storico:', err2);
-            res.json({ success: true });
+        
+        let eraDeclinato = rows.length > 0 && rows[0].stato_cassa === 'declinato';
+        let dataRipresa = eraDeclinato ? new Date() : null;
+        
+        // 2. Aggiorna lo stato
+        db.query('UPDATE stati_tavoli_cucina SET stato_cassa = ?, data_declino_cucina = NULL, data_ripresa = ? WHERE tavolo_id = ?', ['accettato', dataRipresa, req.params.id], (err2) => {
+            if (err2) return res.status(500).json({error: err2.message});
+            db.query('INSERT INTO storico_ordini (tavolo_id, reparto, azione, data_ora) VALUES (?, "cucina", "accettato", NOW())', [req.params.id], (err3) => {
+                if (err3) console.log('Errore storico:', err3);
+                res.json({ success: true, ripresa: eraDeclinato });
+            });
         });
     });
 });
+
 
 // Cucina declina tavolo
 app.put('/api/cucina-declina/:id', (req, res) => {
