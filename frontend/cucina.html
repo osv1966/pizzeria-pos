@@ -48,10 +48,23 @@
     border: 1px solid #ff4444;
     margin-top: 5px;
 }
+.barra-data-ora {
+    background-color: #000;
+    color: #fff;
+    padding: 10px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 8px;
+    margin: 10px auto;
+    max-width: 400px;
+}
+
     </style>
 </head>
 <body>
     <h1>👨‍🍳 CUCINA</h1>
+        <div class="barra-data-ora"><span id="giorno-ora">Caricamento...</span></div>
     
     <div class="stats">
         <div class="stat-card">⏳ In attesa<br><span id="stat-attesa">0</span></div>
@@ -253,6 +266,18 @@ function parla(testo) {
         
         carica();
         setInterval(carica, 3000);
+        function aggiornaGiornoOra() {
+    const giorni = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+    const ora = new Date();
+    const giorno = giorni[ora.getDay()];
+    const hh = String(ora.getHours()).padStart(2, '0');
+    const mm = String(ora.getMinutes()).padStart(2, '0');
+    const el = document.getElementById('giorno-ora');
+    if (el) el.textContent = '📅 ' + giorno + ' | 🕐 ' + hh + '.' + mm;
+}
+aggiornaGiornoOra();
+setInterval(aggiornaGiornoOra, 1000);
+
     </script>
 </body>
 </html>

@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS stati_tavoli_cucina (
   tempo_minuti INT DEFAULT NULL,
   ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   stato_cassa VARCHAR(50) DEFAULT 'in_attesa',
+  data_declino_cucina TIMESTAMP DEFAULT NULL,
   FOREIGN KEY (tavolo_id) REFERENCES tavoli(id)
 );
 
@@ -24,6 +25,7 @@ CREATE TABLE IF NOT EXISTS stati_tavoli_pizzeria (
   tempo_minuti INT DEFAULT NULL,
   ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   stato_cassa VARCHAR(50) DEFAULT 'in_attesa',
+  data_declino_pizzeria TIMESTAMP DEFAULT NULL,
   FOREIGN KEY (tavolo_id) REFERENCES tavoli(id)
 );
 
@@ -74,3 +76,20 @@ INSERT INTO tavoli (numero) VALUES
 INSERT INTO stati_tavoli_cucina (tavolo_id) SELECT id FROM tavoli;
 INSERT INTO stati_tavoli_pizzeria (tavolo_id) SELECT id FROM tavoli;
 INSERT INTO stati_tavoli_friggitoria (tavolo_id) SELECT id FROM tavoli;
+
+-- Tabella menu frittini
+CREATE TABLE IF NOT EXISTS menu_frittini (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  nome VARCHAR(100) NOT NULL,
+  attivo TINYINT DEFAULT 1,
+  ordine INT DEFAULT 0
+);
+
+-- Prodotti frittini base
+INSERT INTO menu_frittini (nome, ordine) VALUES
+('Patatine', 1),
+('Crocchè', 2),
+('Arancini', 3),
+('Panzerotti', 4),
+('Olive Ascolane', 5),
+('Fiori di Zucca', 6);

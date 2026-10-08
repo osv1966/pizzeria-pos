@@ -26,6 +26,101 @@ db.getConnection((err, connection) => {
 });
 
 // ---------- PIZZERIA ----------
+// ---------- STATI COMPLETI (uniti) ----------
+// ---------- MENU FRITTINI ----------
+
+// GET tutti i frittini attivi
+app.get('/api/menu-frittini', (req, res) => {
+    db.query('SELECT * FROM menu_frittini WHERE attivo = 1 ORDER BY ordine ASC', (err, rows) => {
+        if (err) return res.status(500).json({error: err.message});
+        res.json(rows);
+    });
+});
+
+// GET tutti i frittini (anche non attivi) - per admin
+app.get('/api/menu-frittini-tutti', (req, res) => {
+    db.query('SELECT * FROM menu_frittini ORDER BY ordine ASC', (err, rows) => {
+        if (err) return res.status(500).json({error: err.message});
+        res.json(rows);
+    });
+});
+
+// POST aggiungi un frittino
+app.post('/api/menu-frittini', (req, res) => {
+    const { nome, ordine } = req.body;
+    if (!nome) return res.status(400).json({error: 'Nome richiesto'});
+    db.query('INSERT INTO menu_frittini (nome, ordine) VALUES (?, ?)', [nome, ordine || 99], (err, result) => {
+        if (err) return res.status(500).json({error: err.message});
+        res.json({ success: true, id: result.insertId });
+    });
+});
+
+// PUT modifica un frittino (nome, attivo, ordine)
+app.put('/api/menu-frittini/:id', (req, res) => {
+    const { nome, attivo, ordine } = req.body;
+    let updates = [];
+    let params = [];
+    if (nome !== undefined) { updates.push('nome = ?'); params.push(nome); }
+    if (attivo !== undefined) { updates.push('attivo = ?'); params.push(attivo); }
+    if (ordine !== undefined) { updates.push('ordine = ?'); params.push(ordine); }
+    if (updates.length === 0) return res.status(400).json({error: 'Nessun campo da aggiornare'});
+    params.push(req.params.id);
+    db.query('UPDATE menu_frittini SET ' + updates.join(', ') + ' WHERE id = ?', params, (err) => {
+        if (err) return res.status(500).json({error: err.message});
+        res.json({ success: true });
+    });
+});
+
+// DELETE un frittino (soft delete: attivo = 0)
+app.delete('/api/menu-frittini/:id', (req, res) => {
+    db.query('UPDATE menu_frittini SET attivo = 0 WHERE id = ?', [req.params.id], (err) => {
+        if (err) return res.status(500).json({error: err.message});
+        res.json({ success: true });
+    });
+});
+// ---------- FRIGGITORIA: AGGIUNGI FRITTINI ----------
+app.put('/api/friggitoria-aggiungi-frittini/:id', (req, res) => {
+    const { prodotti } = req.body;
+        if (!prodotti || !Array.isArray(prodotti)) {
+        return res.status(400).json({error: 'Prodotti richiesti'});
+    }
+        const prodottiJson = prodotti.length === 0 ? null : JSON.stringify(prodotti);
+
+    // 1. Aggiorna il quadro attuale del tavolo
+    db.query('UPDATE stati_tavoli_friggitoria SET prodotti = ? WHERE tavolo_id = ?', [prodottiJson, req.params.id], (err) => {
+        if (err) return res.status(500).json({error: err.message});
+
+        // 2. Registra nello storico ordini_friggitoria
+        db.query('INSERT INTO ordini_friggitoria (tavolo_id, prodotti, data_ora, stato) VALUES (?, ?, NOW(), "in_attesa")', [req.params.id, prodottiJson], (err2) => {
+            if (err2) console.log('Errore storico friggitoria:', err2);
+            res.json({ success: true });
+        });
+    });
+});
+
+app.get('/api/stati-completi', (req, res) => {
+    const sql = `
+        SELECT t.id as tavolo_id,
+               COALESCE(p.stato_cassa, 'in_attesa') as pizzeria_stato,
+               p.data_declino_pizzeria as pizzeria_data_declino,
+               COALESCE(c.stato_cassa, 'in_attesa') as cucina_stato,
+               c.data_declino_cucina as cucina_data_declino,
+               COALESCE(f.stato_cassa, 'in_attesa') as friggitoria_stato,
+               f.data_declino_friggitoria as friggitoria_data_declino,
+               f.prodotti as friggitoria_prodotti
+        FROM tavoli t
+        LEFT JOIN stati_tavoli_pizzeria p ON t.id = p.tavolo_id
+        LEFT JOIN stati_tavoli_cucina c ON t.id = c.tavolo_id
+        LEFT JOIN stati_tavoli_friggitoria f ON t.id = f.tavolo_id
+        ORDER BY t.id
+    `;
+    db.query(sql, (err, rows) => {
+        if (err) return res.status(500).json({error: err.message});
+        res.json(rows);
+    });
+});
+
+
 app.get('/api/stati-pizzeria', (req, res) => {
     db.query('SELECT * FROM stati_tavoli_pizzeria', (err, rows) => {
         if (err) return res.status(500).json({error: err.message});
@@ -130,7 +225,9 @@ db.query("ALTER TABLE stati_tavoli_friggitoria ADD COLUMN IF NOT EXISTS prodotti
 app.put('/api/cassa-rispondi/:id', (req, res) => {
     const { azione } = req.body;
     const stato_cassa = azione === 'accetta' ? 'accettato' : 'declinato';
-    db.query('UPDATE stati_tavoli_cucina SET stato_cassa = ? WHERE tavolo_id = ?', [stato_cassa, req.params.id], (err) => {
+        const dataDeclino = azione === 'declina' ? new Date() : null;
+    db.query('UPDATE stati_tavoli_cucina SET stato_cassa = ?, data_declino_cucina = ? WHERE tavolo_id = ?', [stato_cassa, dataDeclino, req.params.id], (err) => {
+
         if (err) return res.status(500).json({error: err.message});
         db.query('INSERT INTO storico_ordini (tavolo_id, reparto, azione, data_ora) VALUES (?, "cucina", ?, NOW())', [req.params.id, stato_cassa], (err2) => {
             if (err2) console.log('Errore storico:', err2);
@@ -141,7 +238,11 @@ app.put('/api/cassa-rispondi/:id', (req, res) => {
 app.put('/api/cassa-rispondi-pizzeria/:id', (req, res) => {
     const { azione } = req.body;
     const stato_cassa = azione === 'accetta' ? 'accettato' : 'declinato';
-    db.query('UPDATE stati_tavoli_pizzeria SET stato_cassa = ? WHERE tavolo_id = ?', [stato_cassa, req.params.id], (err) => {
+    const dataDeclino = azione === 'declina' ? new Date() : null;
+    db.query('UPDATE stati_tavoli_pizzeria SET stato_cassa = ?, data_declino_pizzeria = ? WHERE tavolo_id = ?', [stato_cassa, dataDeclino, req.params.id], (err) => {     
+
+
+
         if (err) return res.status(500).json({error: err.message});
         db.query('INSERT INTO storico_ordini (tavolo_id, reparto, azione, data_ora) VALUES (?, "pizzeria", ?, NOW())', [req.params.id, stato_cassa], (err2) => {
             if (err2) console.log('Errore storico:', err2);
@@ -161,6 +262,52 @@ app.put('/api/cassa-rispondi-friggitoria/:id', (req, res) => {
     });
 });
 
+
+// ---------- NUOVE API PIZZERIA/CUCINA ----------
+
+// Pizzeria accetta tavolo
+app.put('/api/pizzeria-accetta/:id', (req, res) => {
+    db.query('UPDATE stati_tavoli_pizzeria SET stato_cassa = ?, data_declino_pizzeria = NULL WHERE tavolo_id = ?', ['accettato', req.params.id], (err) => {
+        if (err) return res.status(500).json({error: err.message});
+        db.query('INSERT INTO storico_ordini (tavolo_id, reparto, azione, data_ora) VALUES (?, "pizzeria", "accettato", NOW())', [req.params.id], (err2) => {
+            if (err2) console.log('Errore storico:', err2);
+            res.json({ success: true });
+        });
+    });
+});
+
+// Pizzeria declina tavolo
+app.put('/api/pizzeria-declina/:id', (req, res) => {
+    db.query('UPDATE stati_tavoli_pizzeria SET stato_cassa = ?, data_declino_pizzeria = NOW() WHERE tavolo_id = ?', ['declinato', req.params.id], (err) => {
+        if (err) return res.status(500).json({error: err.message});
+        db.query('INSERT INTO storico_ordini (tavolo_id, reparto, azione, data_ora) VALUES (?, "pizzeria", "declinato", NOW())', [req.params.id], (err2) => {
+            if (err2) console.log('Errore storico:', err2);
+            res.json({ success: true });
+        });
+    });
+});
+
+// Cucina accetta tavolo
+app.put('/api/cucina-accetta/:id', (req, res) => {
+    db.query('UPDATE stati_tavoli_cucina SET stato_cassa = ?, data_declino_cucina = NULL WHERE tavolo_id = ?', ['accettato', req.params.id], (err) => {
+        if (err) return res.status(500).json({error: err.message});
+        db.query('INSERT INTO storico_ordini (tavolo_id, reparto, azione, data_ora) VALUES (?, "cucina", "accettato", NOW())', [req.params.id], (err2) => {
+            if (err2) console.log('Errore storico:', err2);
+            res.json({ success: true });
+        });
+    });
+});
+
+// Cucina declina tavolo
+app.put('/api/cucina-declina/:id', (req, res) => {
+    db.query('UPDATE stati_tavoli_cucina SET stato_cassa = ?, data_declino_cucina = NOW() WHERE tavolo_id = ?', ['declinato', req.params.id], (err) => {
+        if (err) return res.status(500).json({error: err.message});
+        db.query('INSERT INTO storico_ordini (tavolo_id, reparto, azione, data_ora) VALUES (?, "cucina", "declinato", NOW())', [req.params.id], (err2) => {
+            if (err2) console.log('Errore storico:', err2);
+            res.json({ success: true });
+        });
+    });
+});
 // ---------- STATI COMBINATI ----------
 app.get('/api/stati-combinati', (req, res) => {
     const sql = `SELECT 
@@ -169,6 +316,7 @@ app.get('/api/stati-combinati', (req, res) => {
                     p.tempo_minuti as tempo_pizzeria,
                     p.ultimo_aggiornamento as ultimo_pizzeria,
                     p.stato_cassa as stato_cassa_pizzeria,
+                    p.data_declino_pizzeria as data_declino_pizzeria,
                     c.stato as stato_cucina,
                     c.tempo_minuti as tempo_cucina,
                     c.ultimo_aggiornamento as ultimo_cucina,

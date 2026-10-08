@@ -6,12 +6,23 @@
     <link rel="icon" type="image/svg+xml" href="favicon-pizzeria.svg"><title>Pizzeria</title>
     <style>
         *{box-sizing:border-box}
-        body{background:#2c3e50;padding:15px;margin:0;font-family:'Segoe UI',Arial}
+        body{background:#1a1f3a}
         h1{color:#ff6b00;text-align:center;margin:0 0 15px 0}
         .stats{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
         .stat-card{background:#34495e;padding:8px 15px;border-radius:20px;color:white;text-align:center}
         .stat-card span{font-size:24px;font-weight:bold;display:block}
-        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px}
+        .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
+            @media (max-width: 900px) {
+        .griglia {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .griglia {
+            grid-template-columns: repeat(2, 1fr); gap: 15px;
+        }
+    }
         .tavolo{border-radius:16px;padding:12px 5px;text-align:center;cursor:pointer;border:2px solid transparent;background:#3498db;color:white;transition:0.1s}
         .tavolo.selected{border-color:#ff6b00;background:#3d566e}
         .tavolo.accettato{border:4px solid #00ff00 !important;box-shadow:0 0 15px rgba(0,255,0,0.5)}
@@ -47,21 +58,523 @@
     border: 1px solid #ff4444;
     margin-top: 5px;
 }
+
+    .barra-data-ora {
+        background-color: #000;
+        color: #fff;
+        padding: 10px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+        border-radius: 8px;
+        margin: 10px auto;
+        max-width: 400px;
+    }
+            #standby-container {
+            margin: 0;
+            padding: 0;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 15px;
+        }
+
+        #standby-wrapper {
+            margin: 15px auto;
+            padding: 12px;
+            border-radius: 20px;
+            background: #1a1f3a;
+            border: 2px dashed #ff6b00;
+            max-width: 1200px;
+        }
+           
+    .standby-title {
+        color: #ff9800;
+        font-weight: bold;
+        font-size: 18px;
+        text-align: center;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #ff9800;
+    }
+
+    .tavolo-standby {
+        display: inline-block;
+        padding: 10px 15px;
+        margin: 6px;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        min-width: 200px;
+        text-align: center;
+        vertical-align: top;
+        color: #000;
+    }
+
+    .standby-giallo {
+        background: #f0c040;
+        border: 3px solid #b89000;
+    }
+
+    .standby-arancio {
+        background: #e08030;
+        border: 3px solid #a05000;
+    }
+
+    .standby-rosso {
+        background: #d04040;
+        border: 3px solid #800000;
+        color: #fff;
+        animation: lampeggia 1s infinite alternate;
+    }
+
+    @keyframes lampeggia {
+        from { opacity: 1; }
+        to { opacity: 0.4; }
+    }
+
+    .standby-numero {
+        font-size: 18px;
+        margin-bottom: 5px;
+    }
+
+    .standby-info {
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+
+    .standby-orario { color: #ffffff;
+    }
+    .tavolo-card-split .standby-orario { color: #000000;
+        font-size: 12px;
+        margin-bottom: 3px;
+        font-family: monospace;
+    }
+
+    .standby-tempo {
+        font-size: 15px;
+        margin-bottom: 8px;
+    }
+
+    .btn-riprendi {
+        display: block;
+        width: 100%;
+        padding: 6px 12px;
+        background: #2ecc71;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 15px;
+    }
+
+    .btn-riprendi:hover {
+        background: #27ae60;
+    }    
+        /* === BARRA SPLIT === */
+    #split-container {
+        margin: 0;
+        padding: 0;
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 15px;
+    }
+        #split-title-box, #standby-title-box {
+        color: #ffffff;
+        font-weight: bold;
+        font-size: 18px;
+        text-align: center;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #ff6b00;
+    }
+
+    #split-wrapper {
+        ...
+    }
+    #split-wrapper {
+        margin: 15px auto;
+        padding: 12px;
+        border-radius: 20px;
+        background: #1a1f3a;
+        border: 2px dashed #ff6b00;
+        max-width: 1200px;
+    }
+
+
+    #split-container:empty {
+        display: none;
+    }
+    .split-title {
+        color: #ff6b00;
+        font-weight: bold;
+        font-size: 18px;
+        text-align: center;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #ff6b00;
+    }
+
+    /* === CARD TAVOLO NUOVA (3 righe reparto) === */
+    .tavolo-card-nuovo {
+        background: #ffffff;
+        border: 2px solid #ccc;
+        border-radius: 20px;
+        padding: 14px;
+        margin: 4px;
+        display: inline-block !important;
+        width: calc(25% - 10px) !important;
+        min-width: 320px;
+        vertical-align: top;
+        color: #000;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+        box-sizing: border-box;
+        font-size: 15px;
+    }
+
+    @media (max-width: 900px) {
+        .tavolo-card-nuovo {
+            width: calc(33.33% - 10px);
+            min-width: 120px;
+            font-size: 12px;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .tavolo-card-nuovo {
+            width: calc(50% - 10px);
+            min-width: 45vw;
+            font-size: 15px;
+        }
+    }
+
+
+        .tavolo-card-nuovo.tavolo-verde {
+        background: #d4edda;
+        border-color: #28a745;
+    }
+    .tavolo-card-nuovo.tavolo-grigio {
+        background: #f0f0f0;
+        border-color: #999;
+    }
+    .tavolo-numero-nuovo { background: #ffffff;
+        font-weight: bold;
+        font-size: 16px;
+        margin-bottom: 8px;
+        text-align: center;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #ddd;
+    }
+
+    /* === RIGA REPARTO === */
+    .reparto-riga {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        margin: 6px 0;
+        border-radius: 6px;
+        border-left: 6px solid #ffc107;
+        background: #f9f9f9;
+        font-size: 15px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .reparto-riga:hover {
+        filter: brightness(0.95);
+    }
+      
+    .reparto-riga.accettato {
+        background: #d4edda !important;
+        border-left-color: #28a745 !important;
+    }
+    .reparto-riga.declinato {
+        background: #f8d7da !important;
+        border-left-color: #dc3545 !important;
+    }
+
+    /* === PULSANTI ACCETTA/DECLINA NELLA CARD === */
+    .reparto-bottoni {
+        display: flex;
+        gap: 5px;
+        margin: 4px 0 8px 0;
+    }
+    .btn-accetta-p {
+        flex: 1;
+        padding: 6px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 12px;
+    }
+    .btn-accetta-p:hover {
+        background: #218838;
+    }
+    .btn-declina-p {
+        flex: 1;
+        padding: 6px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 12px;
+    }
+    .btn-declina-p:hover {
+        background: #c82333;
+    }
+
+    /* === CARD SPLIT === */
+    .tavolo-card-split {
+        background: linear-gradient(90deg, #d4edda 50%, #ffe0b2 50%);
+        border: 2px solid #ff9800;
+        border-radius: 20px;
+        padding: 10px;
+        margin: 5px;
+        display: inline-block;
+        width: 220px;
+        vertical-align: top;
+        color: #000;
+        flex-shrink: 0;
+        white-space: normal;
+    }
+
+    /* === CARD STANDBY === */
+    .tavolo-card-standby { display: inline-block; white-space: normal; flex-shrink: 0;
+        display: inline-block;
+        padding: 10px 15px;
+        margin: 6px;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        min-width: 200px;
+        text-align: center;
+        vertical-align: top;
+        color: #000;
+    }
+        .btn-riprendi-inline {
+        background: #2ecc71;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-left: 8px;
+        flex-shrink: 0;
+    }
+    .btn-riprendi-inline:hover {
+        background: #27ae60;
+    }
+        /* === MODALE FRITTINI === */
+    .modale-frittini {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    .modale-frittini.aperta {
+        display: flex;
+    }
+    .modale-content {
+        background: #1a1f3a;
+        border: 3px solid #ff6b00;
+        border-radius: 20px;
+        padding: 20px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    }
+    .modale-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #ff6b00;
+    }
+    .modale-header h2 {
+        color: #fff;
+        font-size: 20px;
+        margin: 0;
+    }
+    .modale-close {
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 35px;
+        height: 35px;
+        font-size: 18px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    .modale-lista {
+        max-height: 50vh;
+        overflow-y: auto;
+        margin-bottom: 15px;
+    }
+    .modale-riga {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        margin: 6px 0;
+        background: #fff;
+        border-radius: 10px;
+        color: #000;
+    }
+    .modale-riga .nome {
+        font-weight: bold;
+        flex: 1;
+    }
+    .modale-riga .controlli {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-qty {
+        background: #ff6b00;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        font-size: 18px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    .btn-qty:hover {
+        background: #e55a00;
+    }
+    .qty-valore {
+        font-weight: bold;
+        font-size: 18px;
+        min-width: 30px;
+        text-align: center;
+    }
+    .modale-messaggio {
+        color: #ff6b00;
+        text-align: center;
+        font-weight: bold;
+        min-height: 20px;
+        margin-bottom: 10px;
+    }
+    .modale-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+    .btn-conferma {
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 30px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .btn-conferma:hover {
+        background: #218838;
+    }
+    .btn-elimina {
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 30px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .btn-elimina:hover {
+        background: #c82333;
+    }    
+
+    .btn-annulla {
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 30px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .btn-annulla:hover {
+        background: #5a6268;
+    }
+    .frittini-card {
+        margin-top: 5px;
+        font-size: 12px;
+        color: #ff6b00;
+        padding: 4px 8px;
+        background: rgba(255, 107, 0, 0.15);
+        border-radius: 8px;
+        font-weight: bold;
+    }
+    .btn-frittini {
+        display: block;
+        width: 100%;
+        margin-top: 6px;
+        padding: 8px;
+        background: #ff9800;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .btn-frittini:hover {
+        background: #e68900;
+    }
+
     </style>
 </head>
 <body>
     <h1>🍕 PIZZERIA</h1>
+    <div class="barra-data-ora"><span id="giorno-ora">Caricamento...</span></div>
     
-    <div class="stats">
+        <div class="stats">
         <div class="stat-card">⏳ In attesa<br><span id="stat-attesa">0</span></div>
-        <div class="stat-card">🔧 In lavoro<br><span id="stat-lavoro">0</span></div>
-        <div class="stat-card">✅ Pronti<br><span id="stat-pronti">0</span></div>
+        <div class="stat-card">✅ Accettati<br><span id="stat-accettati">0</span></div>
+        <div class="stat-card">🟠 Split<br><span id="stat-split">0</span></div>
+        <div class="stat-card">🔴 Standby<br><span id="stat-standby">0</span></div>
+    </div>   
+        <div id="split-wrapper" style="display:none;">
+        <div id="split-title-box"></div>
+        <div id="split-container"></div>
     </div>
-    
+    <div id="standby-wrapper" style="display:none;">
+        <div id="standby-title-box"></div>
+        <div id="standby-container"></div>
+    </div>    
     <div id="griglia-tavoli" class="griglia"></div>
     
     <div class="azione-panel" id="azione-panel">
         <div class="info-selezione" id="info-selezione">📋 Nessun tavolo selezionato</div>
+            <div class="btn-group" id="btn-group-accetta" style="display:none;">
+            <button class="btn btn-verde" onclick="accettaTavolo()">✅ ACCETTA</button>
+            <button class="btn btn-rosso" onclick="declinaTavolo()">❌ DECLINA</button>
+            <button class="btn btn-grigio" onclick="annulla()">ANNULLA</button>
+        </div>
+
+  
         <div class="btn-group" id="btn-group-main">
             <button class="btn btn-verde" onclick="cambiaStato('pronto')">✅ PRONTO</button>
             <button class="btn btn-arancio" onclick="mostraTempi()">⏱️ IN LAVORAZIONE</button>
@@ -83,6 +596,8 @@
     <script>
         let API_URL = 'http://' + window.location.hostname + ':3000';
         let tavoloSelezionato = null;
+        let tavoliCorrenti = [];
+        let repartoAperto = false;
         let voceAttiva = true;
         let annunciati = {};
         
@@ -128,88 +643,273 @@ function parla(testo) {
             return rimasti > 0 ? rimasti : 0;
         }
         
-        async function carica() {
-    try {
-        let res = await fetch(API_URL + '/api/stati-pizzeria');
-        let tavoli = await res.json();
-        let html = '';
-        let attesa=0, lavoro=0, pronti=0;
+                async function carica() {
+                if(repartoAperto) return;
+            try {
+                let res = await fetch(API_URL + '/api/stati-completi');
+                let tavoli = await res.json();
+                tavoliCorrenti = tavoli;
 
-        for(let t of tavoli) {
-            let cls = '';
-            let statoText = '';
-            let tempoHtml = '';
-            let badgeAccettato = '';
-            let badgeDeclinato = '';
-            let minRimasti = calcolaMinutiRimasti(t.ultimo_aggiornamento, t.tempo_minuti);
+                let htmlNormali = '';
+                let htmlSplit = '';
+                let htmlStandby = '';
+                let attesa = 0, accettati = 0;
 
-            // CONTROLLA PRIMA SE È DECLINATO
-            if(t.stato_cassa === 'declinato') {
-                cls = 'declinato-bg';
-                statoText = '❌ DECLINATO';
-                badgeDeclinato = '<div class="badge-declinato">❌ DECLINATO DALLA CASSA</div>';
+                let listaNormali = [];
+                let listaSplit = [];
+                let listaStandby = [];
+
+                // SEPARA IN 3 GRUPPI
+                for(let t of tavoli) {
+                    let p = t.pizzeria_stato;
+                    let c = t.cucina_stato;
+
+                    // STANDBY: entrambi declinato
+                    if(p === 'declinato' && c === 'declinato') {
+                        listaStandby.push(t);
+                        continue;
+                    }
+                                    // SPLIT: solo se ENTRAMBI hanno agito E sono diversi
+                let pHaAgito = (p === 'accettato' || p === 'declinato');
+                let cHaAgito = (c === 'accettato' || c === 'declinato');
+                if(pHaAgito && cHaAgito && p !== c) {
+                    listaSplit.push(t);
+                    continue;
+                }
+                                        
+                    // NORMALI: entrambi in attesa o entrambi accettato
+                    listaNormali.push(t);
+                    if(!(p === 'accettato' && c === 'accettato')) attesa++;
+                    if(p === 'accettato' && c === 'accettato') accettati++;
+                }
+
+                // COSTRUISCI CARD NORMALI
+                for(let t of listaNormali) {
+                    htmlNormali += costruisciCard(t, 'normale');
+                }
+
+                // COSTRUISCI CARD SPLIT
+                for(let t of listaSplit) {
+                    htmlSplit += costruisciCard(t, 'split');
+                }
+
+                // ORDINA STANDBY per data_declino (più vecchio in alto)
+                listaStandby.sort((a, b) => {
+                    let dataA = a.pizzeria_data_declino || a.cucina_data_declino;
+                    let dataB = b.pizzeria_data_declino || b.cucina_data_declino;
+                    if(!dataA) return 1;
+                    if(!dataB) return -1;
+                    return new Date(dataA) - new Date(dataB);
+                });
+
+                // COSTRUISCI CARD STANDBY
+                for(let t of listaStandby) {
+                    htmlStandby += costruisciCard(t, 'standby');
+                }
+
+                // POPOLA I CONTENITORI
+                document.getElementById('griglia-tavoli').innerHTML = htmlNormali;
+
+                if(listaSplit.length > 0) {
+                                    document.getElementById('split-title-box').innerHTML = '🟠 TAVOLI IN SPLIT (' + listaSplit.length + ')';
+                    document.getElementById('split-container').innerHTML = htmlSplit;
+                    document.getElementById('split-wrapper').style.display = 'block';                    
+                   
+                } else {
+                    document.getElementById('split-wrapper').style.display = 'none';
+                }
+
+                if(listaStandby.length > 0) {
+                                       document.getElementById('standby-title-box').innerHTML = '🔴 TAVOLI IN STANDBY (' + listaStandby.length + ')';
+                    document.getElementById('standby-container').innerHTML = htmlStandby;
+                    document.getElementById('standby-wrapper').style.display = 'block';                    
+                } else {
+                    document.getElementById('standby-wrapper').style.display = 'none';
+                }
+
+                document.getElementById('stat-attesa').innerText = attesa;
+                document.getElementById('stat-accettati').innerText = accettati;
+                document.getElementById('stat-split').innerText = listaSplit.length;
+                document.getElementById('stat-standby').innerText = listaStandby.length;                
+            } catch(e) { console.error(e); }
+        }        
+                    function costruisciCard(t, tipo) {
+            let tavoloId = t.tavolo_id;
+            let p = t.pizzeria_stato;
+            let c = t.cucina_stato;
+            let f = t.friggitoria_stato;
+
+            // Classe della card
+            let cardClass = 'tavolo-card-nuovo';
+            if(tipo === 'split') cardClass = 'tavolo-card-split';
+            if(tipo === 'standby') cardClass = 'tavolo-card-standby';
+            if(tipo === 'normale' && p === 'accettato' && c === 'accettato') {
+                cardClass += ' tavolo-verde';
+            } else if(tipo === 'normale' && p === 'in_attesa' && c === 'in_attesa') {
+                cardClass += ' tavolo-grigio';
             }
-            else if(t.stato === 'lavorazione') {
-                cls = 'lavoro-bg';
-                statoText = '🔧 Lavoro';
-                if(minRimasti > 0) tempoHtml = `<div class="tempo">⏱️ ${minRimasti} min</div>`;
-                lavoro++;
+
+            // Riga Pizzeria
+            let classP = 'reparto-riga pizzeria';
+            let testoP = '🍕 PIZZERIA — ⏳ Attesa';
+            if(p === 'accettato') { classP += ' accettato'; testoP = '🍕 PIZZERIA — ✅ Accettato'; }
+            else if(p === 'declinato') { classP += ' declinato'; testoP = '🍕 PIZZERIA — ❌ Declinato'; }
+            
+            let btnRiprendiP = '';
+            if(tipo === 'standby' && p === 'declinato') {
+                btnRiprendiP = '<button class="btn-riprendi-inline" onclick="event.stopPropagation(); riprendi(' + tavoloId + ', \'pizzeria\')">↩️ RIPRENDI</button>';
+            } else if(tipo === 'split' && p === 'declinato') {
+                btnRiprendiP = '<button class="btn-riprendi-inline" onclick="event.stopPropagation(); riprendi(' + tavoloId + ', \'pizzeria\')">↩️ RIPRENDI</button>';
             }
-            else if(t.stato === 'pronto') {
-                cls = 'pronto-bg';
-                statoText = '✅ Pronto';
-                pronti++;
-                if(voceAttiva && !annunciati[`pronto_${t.tavolo_id}`]) {
-                    annunciati[`pronto_${t.tavolo_id}`] = true;
-                    parla(`Tavolo ${t.tavolo_id}, pronto`);
+
+            let rigaP = '<div class="' + classP + '" onclick="clickReparto(' + tavoloId + ', \'pizzeria\')">' + testoP + btnRiprendiP + '</div>';
+
+            // Riga Cucina
+            let classC = 'reparto-riga cucina';
+            let testoC = '👨‍🍳 CUCINA — ⏳ Attesa';
+            if(c === 'accettato') { classC += ' accettato'; testoC = '👨‍🍳 CUCINA — ✅ Accettato'; }
+            else if(c === 'declinato') { classC += ' declinato'; testoC = '👨‍🍳 CUCINA — ❌ Declinato'; }
+            
+            let btnRiprendiC = '';
+            if(tipo === 'standby' && c === 'declinato') {
+                btnRiprendiC = '<button class="btn-riprendi-inline" onclick="event.stopPropagation(); riprendi(' + tavoloId + ', \'cucina\')">↩️ RIPRENDI</button>';
+            } else if(tipo === 'split' && c === 'declinato') {
+                btnRiprendiC = '<button class="btn-riprendi-inline" onclick="event.stopPropagation(); riprendi(' + tavoloId + ', \'cucina\')">↩️ RIPRENDI</button>';
+            }
+
+            let rigaC = '<div class="' + classC + '" onclick="clickReparto(' + tavoloId + ', \'cucina\')">' + testoC + btnRiprendiC + '</div>';
+            
+                        // Riga Friggitoria
+            let classF = 'reparto-riga friggitoria';
+            let testoF = '🍟 FRIGGITORIA — ⏳ Attesa';
+            if(f === 'accettato') { classF += ' accettato'; testoF = '🍟 FRIGGITORIA — ✅ Accettato'; }
+            else if(f === 'declinato') { classF += ' declinato'; testoF = '🍟 FRIGGITORIA — ❌ Declinato'; }
+
+            let rigaF = '<div class="' + classF + '">' + testoF + '</div>';
+
+            // Mostra i frittini se presenti
+            let frittiniHtml = '';
+            if(t.friggitoria_prodotti) {
+                try {
+                    let prodotti = JSON.parse(t.friggitoria_prodotti);
+                    if(prodotti.length > 0) {
+                        let lista = prodotti.map(p => p.prodotto + ' x' + p.quantita).join(', ');
+                        frittiniHtml = '<div class="frittini-card">🍟 ' + lista + '</div>';
+                    }
+                } catch(e) {}
+            }
+
+            // Pulsante FRITTINI (solo se non è standby)
+            let btnFrittini = '';
+            if(tipo !== 'standby') {
+                btnFrittini = '<button class="btn-frittini" onclick="event.stopPropagation(); apriModaleFrittini(' + tavoloId + ')">🍟 GESTISCI FRITTINI</button>';
+            }
+
+            rigaF = rigaF + frittiniHtml + btnFrittini;
+            // Orario declino (per STANDBY e SPLIT)
+            let orarioDeclino = '';
+            if(tipo === 'standby' || tipo === 'split') {
+                let dataDeclino = t.pizzeria_data_declino || t.cucina_data_declino;
+                if(dataDeclino) {
+                    let d = new Date(dataDeclino);
+                    let hh = String(d.getHours()).padStart(2,'0');
+                    let mm = String(d.getMinutes()).padStart(2,'0');
+                    orarioDeclino = '<div class="standby-orario">📅 ' + hh + ':' + mm + '</div>';
                 }
             }
-            else if(t.stato === 'non_disponibile') {
-                cls = 'non-disponibile-bg';
-                statoText = '❌ Non disp.';
-            }
-            else {
-                cls = 'attesa-bg';
-                statoText = '⏳ Attesa';
-                attesa++;
-            }
 
-            if(t.stato_cassa === 'accettato') {
-                cls += ' accettato';
-                badgeAccettato = '<div class="badge-accettato">✅ Accettato</div>';
-                if(voceAttiva && !annunciati[`accettato_${t.tavolo_id}`]) {
-                    annunciati[`accettato_${t.tavolo_id}`] = true;
-                    parla(`Tavolo ${t.tavolo_id}, ordine accettato`);
-                }
-            }
-
-            let selected = (tavoloSelezionato === t.tavolo_id) ? 'selected' : '';
-            html += `<div class="tavolo ${cls} ${selected}" onclick="seleziona(${t.tavolo_id})">
-                        <div class="numero">🍽️ ${t.tavolo_id}</div>
-                        <div class="stato">${statoText}</div>
-                        ${tempoHtml}
-                        ${badgeAccettato}
-                        ${badgeDeclinato}
-                    </div>`;
+            return '<div class="' + cardClass + '">' +
+                   '<div class="tavolo-numero-nuovo">🍽️ Tavolo ' + tavoloId + '</div>' +
+                   rigaP + rigaC + rigaF +
+                   orarioDeclino +
+                   '</div>';
         }
-        document.getElementById('griglia-tavoli').innerHTML = html;
-        document.getElementById('stat-attesa').innerText = attesa;
-        document.getElementById('stat-lavoro').innerText = lavoro;
-        document.getElementById('stat-pronti').innerText = pronti;
-    } catch(e) { console.error(e); }
-}
-   
+            
+            function clickReparto(tavoloId, reparto) {
+            repartoAperto = true;
+            // Trova la card del tavolo
+            let card = event.target.closest('.tavolo-card-nuovo, .tavolo-card-split, .tavolo-card-standby');
+            if(!card) return;
 
+            // Rimuovi eventuali pulsanti già aperti
+            let esistenti = card.querySelectorAll('.reparto-bottoni');
+            esistenti.forEach(e => e.remove());
 
-        function seleziona(id) {
+            // Controlla se i pulsanti sono già aperti per questa riga
+            let rigaCliccata = event.target.closest('.reparto-riga');
+            if(!rigaCliccata) return;
+
+            // Crea i pulsanti
+            let bottoni = document.createElement('div');
+            bottoni.className = 'reparto-bottoni';
+            bottoni.innerHTML = 
+                '<button class="btn-accetta-p" onclick="event.stopPropagation(); azioneReparto(' + tavoloId + ', \'' + reparto + '\', \'accetta\')">✅ ACCETTA</button>' +
+                '<button class="btn-declina-p" onclick="event.stopPropagation(); azioneReparto(' + tavoloId + ', \'' + reparto + '\', \'declina\')">❌ DECLINA</button>';
+
+            // Inserisci sotto la riga cliccata
+            rigaCliccata.parentNode.insertBefore(bottoni, rigaCliccata.nextSibling);
+        }
+
+        async function azioneReparto(tavoloId, reparto, azione) {
+            let endpoint = '';
+            if(reparto === 'pizzeria') {
+                endpoint = azione === 'accetta' ? '/api/pizzeria-accetta/' : '/api/pizzeria-declina/';
+            } else if(reparto === 'cucina') {
+                endpoint = azione === 'accetta' ? '/api/cucina-accetta/' : '/api/cucina-declina/';
+            } else {
+                console.log('Reparto non gestito ancora:', reparto);
+                return;
+            }
+
+            try {
+                await fetch(API_URL + endpoint + tavoloId, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                repartoAperto = false;
+                carica();
+            } catch(e) {
+                console.error('Errore azione:', e);
+            }
+        }
+                async function riprendi(id, reparto) {
+            if(!confirm('Riprendere il tavolo ' + id + ' (' + reparto + ')?')) return;
+            repartoAperto = false;
+            let endpoint = reparto === 'cucina' ? '/api/cucina-accetta/' : '/api/pizzeria-accetta/';
+            try {
+                await fetch(API_URL + endpoint + id, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                carica();
+            } catch(e) { console.error(e); }
+        }
+           
+                function seleziona(id) {
             tavoloSelezionato = id;
             document.getElementById('info-selezione').innerHTML = `📋 Tavolo ${id} selezionato`;
             document.getElementById('azione-panel').style.display = 'block';
-            document.getElementById('btn-group-main').style.display = 'flex';
             document.getElementById('tempi-buttons').style.display = 'none';
+
+            // Trova il tavolo selezionato
+            let tavolo = tavoliCorrenti.find(t => t.tavolo_id === id);
+            
+            // Nascondi entrambi i gruppi
+            document.getElementById('btn-group-main').style.display = 'none';
+            document.getElementById('btn-group-accetta').style.display = 'none';
+
+            if(tavolo) {
+                // Se non è ancora accettato → mostra ACCETTA/DECLINA
+                if(tavolo.stato_cassa !== 'accettato' && tavolo.stato_cassa !== 'declinato') {
+                    document.getElementById('btn-group-accetta').style.display = 'flex';
+                } else {
+                    // Se accettato → mostra PRONTO/IN LAVORAZIONE/NON DISP.
+                    document.getElementById('btn-group-main').style.display = 'flex';
+                }
+            }
             carica();
         }
-        
+                   
         function mostraTempi() {
             document.getElementById('btn-group-main').style.display = 'none';
             document.getElementById('tempi-buttons').style.display = 'block';
@@ -228,6 +928,32 @@ function parla(testo) {
                 body: JSON.stringify({stato: stato, tempo_minuti: null})
             });
             if(stato === 'pronto') parla(`Tavolo ${tavoloSelezionato}, pronto`);
+            tavoloSelezionato = null;
+            document.getElementById('azione-panel').style.display = 'none';
+            carica();
+        }
+        
+        async function accettaTavolo() {
+            if(!tavoloSelezionato) return;
+            await fetch(API_URL + '/api/cassa-rispondi-pizzeria/' + tavoloSelezionato, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({azione: 'accetta'})
+            });
+            parla(`Tavolo ${tavoloSelezionato}, accettato`);
+            tavoloSelezionato = null;
+            document.getElementById('azione-panel').style.display = 'none';
+            carica();
+        }
+
+        async function declinaTavolo() {
+            if(!tavoloSelezionato) return;
+            await fetch(API_URL + '/api/cassa-rispondi-pizzeria/' + tavoloSelezionato, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({azione: 'declina'})
+            });
+            parla(`Tavolo ${tavoloSelezionato}, declinato`);
             tavoloSelezionato = null;
             document.getElementById('azione-panel').style.display = 'none';
             carica();
@@ -254,6 +980,158 @@ function parla(testo) {
         
         carica();
         setInterval(carica, 3000);
-    </script>
+        
+        // === GIORNO E ORA ===
+        function aggiornaGiornoOra() {
+            const giorni = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+            const ora = new Date();
+            const giorno = giorni[ora.getDay()];
+            const hh = String(ora.getHours()).padStart(2, '0');
+            const mm = String(ora.getMinutes()).padStart(2, '0');
+            const el = document.getElementById('giorno-ora');
+            if (el) el.textContent = '📅 ' + giorno + ' | 🕐 ' + hh + '.' + mm;
+        }
+        aggiornaGiornoOra();
+        setInterval(aggiornaGiornoOra, 1000);
+      
+        // === MODALE FRITTINI ===
+        let frittiniCorrenti = {};
+        let tavoloFrittiniCorrente = null;
+
+        async function apriModaleFrittini(tavoloId) {
+            tavoloFrittiniCorrente = tavoloId;
+            frittiniCorrenti = {};
+            
+            // Imposta il numero del tavolo nella modale
+            document.getElementById('modale-tavolo').innerText = tavoloId;
+            document.getElementById('modale-messaggio').innerText = '';
+            
+            // Carica il menu dal DB
+            try {
+                let res = await fetch(API_URL + '/api/menu-frittini');
+                let menu = await res.json();
+                
+                // Carica i frittini già ordinati per questo tavolo
+                let resF = await fetch(API_URL + '/api/stati-completi');
+                let tutti = await resF.json();
+                let tavolo = tutti.find(t => t.tavolo_id === tavoloId);
+                
+                if(tavolo && tavolo.friggitoria_prodotti) {
+                    try {
+                        let prodotti = JSON.parse(tavolo.friggitoria_prodotti);
+                        prodotti.forEach(p => {
+                            frittiniCorrenti[p.prodotto] = p.quantita;
+                        });
+                    } catch(e) {}
+                }
+                
+                // Costruisci la lista
+                let html = '';
+                menu.forEach(m => {
+                    let qty = frittiniCorrenti[m.nome] || 0;
+                    html += '<div class="modale-riga">' +
+                                '<div class="nome">🍟 ' + m.nome + '</div>' +
+                                '<div class="controlli">' +
+                                    '<button class="btn-qty" onclick="cambiaQtyFrittino(\'' + m.nome + '\', -1)">−</button>' +
+                                    '<div class="qty-valore" id="qty-' + m.id + '">' + qty + '</div>' +
+                                    '<button class="btn-qty" onclick="cambiaQtyFrittino(\'' + m.nome + '\', 1)">+</button>' +
+                                '</div>' +
+                            '</div>';
+                });
+                document.getElementById('modale-lista').innerHTML = html;
+                
+                // Apri modale
+                document.getElementById('modale-frittini').classList.add('aperta');
+                repartoAperto = true; // Blocca aggiornamento automatico
+            } catch(e) {
+                console.error('Errore apertura modale:', e);
+                document.getElementById('modale-messaggio').innerText = 'Errore di caricamento';
+            }
+        }
+
+        function cambiaQtyFrittino(nome, delta) {
+            if(!frittiniCorrenti[nome]) frittiniCorrenti[nome] = 0;
+            frittiniCorrenti[nome] += delta;
+            if(frittiniCorrenti[nome] < 0) frittiniCorrenti[nome] = 0;
+            
+            // Aggiorna la visualizzazione
+            let menu = document.querySelectorAll('.modale-riga');
+            menu.forEach(riga => {
+                let nomeRiga = riga.querySelector('.nome').innerText.replace('🍟 ', '');
+                if(nomeRiga === nome) {
+                    riga.querySelector('.qty-valore').innerText = frittiniCorrenti[nome];
+                }
+            });
+        }
+
+        async function confermaFrittini() {
+            // Controlla che ci sia almeno un frittino selezionato
+            let prodotti = [];
+            for(let nome in frittiniCorrenti) {
+                if(frittiniCorrenti[nome] > 0) {
+                    prodotti.push({prodotto: nome, quantita: frittiniCorrenti[nome]});
+                }
+            }
+            
+            
+            try {
+                await fetch(API_URL + '/api/friggitoria-aggiungi-frittini/' + tavoloFrittiniCorrente, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({prodotti: prodotti})
+                });
+                chiudiModaleFrittini();
+                carica();
+            } catch(e) {
+                console.error('Errore conferma:', e);
+                document.getElementById('modale-messaggio').innerText = 'Errore di salvataggio';
+            }
+        }
+        
+        
+        async function eliminaTuttiFrittini() {
+            if(!confirm('Eliminare TUTTI i frittini del tavolo ' + tavoloFrittiniCorrente + '?')) return;
+            
+            try {
+                await fetch(API_URL + '/api/friggitoria-aggiungi-frittini/' + tavoloFrittiniCorrente, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({prodotti: []})
+                });
+                chiudiModaleFrittini();
+                carica();
+            } catch(e) {
+                console.error('Errore eliminazione:', e);
+                document.getElementById('modale-messaggio').innerText = 'Errore di eliminazione';
+            }
+        }
+        function chiudiModaleFrittini() {
+            document.getElementById('modale-frittini').classList.remove('aperta');
+            repartoAperto = false; // Sblocca aggiornamento automatico
+            tavoloFrittiniCorrente = null;
+            frittiniCorrenti = {};
+        }
+ 
+</script>
+
+    <!-- === MODALE FRITTINI === -->
+    <div id="modale-frittini" class="modale-frittini">
+        <div class="modale-content">
+            <div class="modale-header">
+                <h2>🍟 FRITTINI - Tavolo <span id="modale-tavolo">-</span></h2>
+                <button class="modale-close" onclick="chiudiModaleFrittini()">✕</button>
+            </div>
+            <div id="modale-lista" class="modale-lista">
+                <!-- Lista prodotti caricata dal DB -->
+            </div>
+            <div id="modale-messaggio" class="modale-messaggio"></div>
+            <div class="modale-footer">
+                <button class="btn-conferma" onclick="confermaFrittini()">✅ CONFERMA</button>
+                <button class="btn-elimina" onclick="eliminaTuttiFrittini()">🗑️ ELIMINA TUTTO</button>
+                <button class="btn-annulla" onclick="chiudiModaleFrittini()">❌ ANNULLA</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
