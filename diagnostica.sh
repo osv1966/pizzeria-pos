@@ -79,7 +79,7 @@ else
 fi
 
 # Controllo tabelle
-TABELLE="tavoli stati_tavoli_cucina stati_tavoli_pizzeria stati_tavoli_friggitoria storico_ordini storico_stati ordini_friggitoria"
+TABELLE="tavoli stati_tavoli_cucina stati_tavoli_pizzeria stati_tavoli_friggitoria storico_ordini storico_stati ordini_friggitoria menu_frittini"
 
 for T in $TABELLE; do
     echo -n "  Tabella $T............... "
@@ -131,7 +131,7 @@ else
 fi
 
 # Altri endpoint critici
-for EP in "stati-cucina" "stati-pizzeria" "stati-friggitoria" "storico-accettati"; do
+for EP in "stati-cucina" "stati-pizzeria" "stati-friggitoria" "storico" "menu-frittini" "stati-completi"; do
     echo -n "  /api/$EP............... "
     CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://localhost:3000/api/$EP" 2>/dev/null)
     if [ "$CODE" = "200" ]; then
