@@ -543,7 +543,32 @@
     .btn-frittini:hover {
         background: #e68900;
     }
-
+        /* === TAVOLO RIPRESO (bordo pulsante) === */
+    @keyframes pulse-border-green {
+        0% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.9), 0 8px 20px rgba(0,0,0,0.6);
+            border-color: #28a745;
+        }
+        50% {
+            box-shadow: 0 0 0 12px rgba(40, 167, 69, 0), 0 8px 20px rgba(0,0,0,0.6);
+            border-color: #56d87a;
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.9), 0 8px 20px rgba(0,0,0,0.6);
+            border-color: #28a745;
+        }
+    }
+    .tavolo-ripreso {
+        animation: pulse-border-green 1.5s infinite;
+        border: 3px solid #28a745 !important;
+    }
+    .tavolo-ripreso .tavolo-numero-nuovo::after {
+        content: ' 🔄 RIPRESO';
+        color: #28a745;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    
     </style>
 </head>
 <body>
@@ -748,7 +773,16 @@ function parla(testo) {
             } else if(tipo === 'normale' && p === 'in_attesa' && c === 'in_attesa') {
                 cardClass += ' tavolo-grigio';
             }
-
+            
+            // Controlla se la CUCINA ha ripreso di recente (entro 10 minuti)
+            let oraAttuale = new Date();
+            let dieciMinutiFa = new Date(oraAttuale.getTime() - 10 * 60 * 1000);
+            
+            if(t.cucina_data_ripresa) {
+                let dRip = new Date(t.cucina_data_ripresa);
+                if(dRip > dieciMinutiFa) cardClass += ' tavolo-ripreso';
+            }
+            
             // Riga Pizzeria
             let classP = 'reparto-riga pizzeria';
             let testoP = '🍕 PIZZERIA — ⏳ Attesa';

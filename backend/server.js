@@ -363,18 +363,23 @@ app.get('/api/stati-combinati', (req, res) => {
 
 // ---------- RESET TAVOLI ----------
 app.post('/api/reset-tavoli', (req, res) => {
-    db.query('UPDATE stati_tavoli_pizzeria SET stato = "in_attesa", tempo_minuti = NULL, stato_cassa = "in_attesa"', (err) => {
+    // Reset Pizzeria (tutti i campi)
+    db.query('UPDATE stati_tavoli_pizzeria SET stato = "in_attesa", stato_cassa = "in_attesa", tempo_minuti = NULL, data_declino_pizzeria = NULL, data_ripresa = NULL', (err) => {
         if (err) return res.status(500).json({error: err.message});
-        db.query('UPDATE stati_tavoli_cucina SET stato = "in_attesa", tempo_minuti = NULL, stato_cassa = "in_attesa"', (err2) => {
+        
+        // Reset Cucina (tutti i campi)
+        db.query('UPDATE stati_tavoli_cucina SET stato = "in_attesa", stato_cassa = "in_attesa", tempo_minuti = NULL, data_declino_cucina = NULL, data_ripresa = NULL', (err2) => {
             if (err2) return res.status(500).json({error: err2.message});
-            db.query('UPDATE stati_tavoli_friggitoria SET stato = "in_attesa", tempo_minuti = NULL, stato_cassa = "in_attesa"', (err3) => {
+            
+            // Reset Friggitoria (tutti i campi)
+            db.query('UPDATE stati_tavoli_friggitoria SET stato = "in_attesa", stato_cassa = "in_attesa", tempo_minuti = NULL, data_declino_friggitoria = NULL, prodotti = NULL', (err3) => {
                 if (err3) return res.status(500).json({error: err3.message});
-                res.json({ success: true });
+                
+                res.json({ success: true, message: "Tavoli resettati" });
             });
         });
     });
 });
-
 // ---------- STORICO (cancella solo >7 giorni) ----------
 app.get('/api/storico-tutti', (req, res) => {
     db.query('SELECT * FROM storico_stati ORDER BY data_ora DESC', (err, rows) => {
@@ -450,13 +455,64 @@ app.post('/api/reset-all', (req, res) => {
     });
 });
 
-// STORICO ORDINI ACCETTATI
-app.get('/api/storico-accettati', (req, res) => {
-    db.query('SELECT tavolo_id, reparto, azione, data_ora FROM storico_ordini ORDER BY data_ora DESC LIMIT 100', (err, rows) => {
+// ---------- STORICO con filtri e paginazione ----------
+app.get('/api/storico', (req, res) => {
+    const { data, reparto, azione, pagina } = req.query;
+    const perPagina = 50;
+    const offset = ((parseInt(pagina) || 1) - 1) * perPagina;
+    
+    let where = [];
+    let params = [];
+    
+    if (data) {
+        where.push('DATE(data_ora) = ?');
+        params.push(data);
+    }
+    if (reparto) {
+        where.push('reparto = ?');
+        params.push(reparto);
+    }
+    if (azione) {
+        where.push('azione = ?');
+        params.push(azione);
+    }
+    
+    let whereClause = where.length > 0 ? 'WHERE ' + where.join(' AND ') : '';
+    
+    // Conta totale
+    const countSql = 'SELECT COUNT(*) as totale FROM storico_ordini ' + whereClause;
+    db.query(countSql, params, (err, countResult) => {
         if (err) return res.status(500).json({error: err.message});
-        res.json(rows);
+        const totale = countResult[0].totale;
+        
+        // Prendi pagina
+        const sql = 'SELECT id, tavolo_id, reparto, azione, data_ora FROM storico_ordini ' + 
+                    whereClause + 
+                    ' ORDER BY data_ora DESC LIMIT ? OFFSET ?';
+        db.query(sql, [...params, perPagina, offset], (err2, rows) => {
+            if (err2) return res.status(500).json({error: err2.message});
+            res.json({
+                movimenti: rows,
+                totale: totale,
+                pagina: parseInt(pagina) || 1,
+                perPagina: perPagina,
+                totalePagine: Math.ceil(totale / perPagina)
+            });
+        });
     });
 });
+
+// Cancella storico fino a una data
+app.post('/api/cancella-storico-fino-al', (req, res) => {
+    const { data_limite } = req.body;
+    if (!data_limite) return res.status(400).json({error: 'Data limite richiesta'});
+    
+    db.query('DELETE FROM storico_ordini WHERE DATE(data_ora) < ?', [data_limite], (err, result) => {
+        if (err) return res.status(500).json({error: err.message});
+        res.json({ success: true, eliminati: result.affectedRows });
+    });
+});
+
 // API per ottenere ordini friggitoria (per Cassa)
 app.get('/api/ordini-friggitoria', (req, res) => {
     db.query('SELECT * FROM ordini_friggitoria WHERE stato = "in_attesa" ORDER BY data_ora ASC', (err, rows) => {

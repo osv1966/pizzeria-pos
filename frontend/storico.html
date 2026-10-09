@@ -1,184 +1,325 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <link rel="icon" type="image/svg+xml" href="favicon-storico.svg"><title>Storico Ordini</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: #1e2a3a;
+            font-family: Arial, sans-serif;
+            background: #1a1f3a;
+            color: #fff;
             padding: 20px;
-            font-family: 'Segoe UI', Arial, sans-serif;
         }
         h1 {
-            color: #ff6b00;
             text-align: center;
+            color: #ff6b00;
             margin-bottom: 20px;
             font-size: 28px;
         }
-        .toolbar {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .btn {
-            background: #17a2b8;
+        .btn-back {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #6c757d;
             color: white;
             border: none;
-            border-radius: 30px;
-            padding: 10px 24px;
-            font-size: 14px;
+            border-radius: 20px;
+            padding: 10px 20px;
             cursor: pointer;
-            transition: 0.2s;
+            font-weight: bold;
+            z-index: 100;
         }
-        .btn:hover {
-            background: #138496;
+        .btn-back:hover { background: #5a6268; }
+
+        .filtri {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #2a2f4a;
+            border-radius: 15px;
         }
-        .storico-container {
-            overflow-x: auto;
-            border-radius: 16px;
-            background: #2c3e50;
+        .filtri input, .filtri select, .filtri button {
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: none;
+            font-size: 14px;
         }
+        .filtri input, .filtri select {
+            background: #fff;
+            color: #000;
+            min-width: 150px;
+        }
+        .filtri button {
+            background: #ff6b00;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .filtri button:hover { background: #e55a00; }
+        .filtri button.reset {
+            background: #6c757d;
+        }
+        .filtri button.reset:hover { background: #5a6268; }
+
+        .totale {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #ff6b00;
+            font-weight: bold;
+        }
+
         table {
             width: 100%;
+            max-width: 1200px;
+            margin: 0 auto 20px auto;
             border-collapse: collapse;
+            background: #fff;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+        }
+        thead {
+            background: #ff6b00;
             color: white;
         }
-        th {
-            background: #34495e;
-            color: #ff6b00;
-            padding: 14px 12px;
+        th, td {
+            padding: 12px 15px;
             text-align: left;
+            color: #000;
+            font-size: 14px;
+        }
+        th {
+            font-weight: bold;
+            color: #fff;
+        }
+        tbody tr:nth-child(even) { background: #f5f5f5; }
+        tbody tr:hover { background: #ffe0b2; }
+
+        .badge-accettato {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #d4edda;
+            color: #155724;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .badge-declinato {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #f8d7da;
+            color: #721c24;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .paginazione {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .paginazione button {
+            background: #ff6b00;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .paginazione button:hover { background: #e55a00; }
+        .paginazione button:disabled {
+            background: #444;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .paginazione span {
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .btn-cancella {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 15px;
+            cursor: pointer;
             font-weight: bold;
             font-size: 14px;
         }
-        td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #3d566e;
-            font-size: 13px;
-        }
-        .cucina { color: #3498db; font-weight: bold; }
-        .pizzeria { color: #28a745; font-weight: bold; }
-        .friggitoria { color: #fd7e14; font-weight: bold; }
+        
+        .btn-cancella:hover { background: #c82333; }
+
         .empty {
             text-align: center;
+            padding: 40px;
             color: #999;
-            padding: 50px;
-            font-size: 16px;
-        }
-        .badge-accettato {
-            background: #28a745;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            display: inline-block;
-        }
-        .badge-declinato {
-            background: #dc3545;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            display: inline-block;
+            font-size: 18px;
         }
     </style>
 </head>
 <body>
-    <h1>📜 STORICO ORDINI</h1>
-    <div class="toolbar">
-        <button class="btn" onclick="window.close()">◀ CHIUDI</button><button class="btn" onclick="cancellaStorico()" style="background:#dc3545; margin-left:10px;">🗑️ CANCELLA STORICO</button>
-    </div>
-    <div id="storico-container" class="storico-container"></div>
+    <button class="btn-back" onclick="window.location.href='cassa.html'">← Indietro</button>
 
+    <h1>📜 STORICO ORDINI</h1>
+
+    <div class="filtri">
+        <input type="date" id="filtro-data">
+        <select id="filtro-reparto">
+            <option value="">Tutti i reparti</option>
+            <option value="pizzeria">🍕 Pizzeria</option>
+            <option value="cucina">👨‍🍳 Cucina</option>
+            <option value="friggitoria">🍟 Friggitoria</option>
+        </select>
+        <select id="filtro-azione">
+            <option value="">Tutte le azioni</option>
+            <option value="accettato">✅ Accettato</option>
+            <option value="declinato">❌ Declinato</option>
+        </select>
+        <button onclick="applicaFiltri()">🔍 Cerca</button>
+        <button class="reset" onclick="resetFiltri()">✖ Reset</button>
+        <button class="btn-cancella" onclick="cancellaStorico()">  Cancella storico fino al....</button>
+    </div>
+
+    <div class="totale" id="totale">— movimenti trovati</div>
+
+    <table id="tabella">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Tavolo</th>
+                <th>Reparto</th>
+                <th>Azione</th>
+                <th>Data / Ora</th>
+            </tr>
+        </thead>
+        <tbody id="corpo-tabella"></tbody>
+    </table>
+
+    <div class="paginazione">
+        <button id="btn-prev" onclick="cambiaPagina(-1)">⬅️ Precedente</button>
+        <span id="info-pagina">Pagina 1 di 1</span>
+        <button id="btn-next" onclick="cambiaPagina(1)">Successiva ➡️</button>
+    </div>
+
+    
     <script>
-        let API_URL = 'http://' + window.location.hostname + ':3000';
-        
+        const API_URL = 'http://' + window.location.hostname + ':3000';
+        let paginaCorrente = 1;
+        let totalePagine = 1;
+
         async function caricaStorico() {
+            const data = document.getElementById('filtro-data').value;
+            const reparto = document.getElementById('filtro-reparto').value;
+            const azione = document.getElementById('filtro-azione').value;
+
+            let params = new URLSearchParams();
+            if (data) params.append('data', data);
+            if (reparto) params.append('reparto', reparto);
+            if (azione) params.append('azione', azione);
+            params.append('pagina', paginaCorrente);
+
             try {
-                let res = await fetch(API_URL + '/api/storico-accettati');
-                let data = await res.json();
-                
-                if(data.length === 0) {
-                    document.getElementById('storico-container').innerHTML = '<div class="empty">📭 Nessun ordine registrato</div>';
-                    return;
+                const res = await fetch(API_URL + '/api/storico?' + params.toString());
+                const d = await res.json();
+
+                totalePagine = d.totalePagine;
+                document.getElementById('totale').innerText = d.totale + ' movimenti trovati';
+
+                let html = '';
+                if (d.movimenti.length === 0) {
+                    html = '<tr><td colspan="5" class="empty">📭 Nessun movimento trovato</td></tr>';
+                } else {
+                    d.movimenti.forEach(m => {
+                        const dataOra = new Date(m.data_ora);
+                        const dataStr = dataOra.toLocaleDateString('it-IT') + ' ' + 
+                                        dataOra.toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
+                        const badge = m.azione === 'accettato' 
+                            ? '<span class="badge-accettato">✅ Accettato</span>'
+                            : '<span class="badge-declinato">❌ Declinato</span>';
+                        const repartoEmoji = m.reparto === 'pizzeria' ? '🍕 Pizzeria' 
+                            : m.reparto === 'cucina' ? '👨‍🍳 Cucina' 
+                            : '🍟 Friggitoria';
+
+                        html += '<tr>' +
+                                    '<td>' + m.id + '</td>' +
+                                    '<td>🍽️ Tavolo ' + m.tavolo_id + '</td>' +
+                                    '<td>' + repartoEmoji + '</td>' +
+                                    '<td>' + badge + '</td>' +
+                                    '<td>' + dataStr + '</td>' +
+                                '</tr>';
+                    });
                 }
-                
-                let html = `<table>
-                    <thead>
-                        <tr>
-                            <th>📅 Data e Ora</th>
-                            <th>🍽️ Tavolo</th>
-                            <th>🏷️ Reparto</th>
-                            <th>✅ Azione</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-                
-                for(let s of data) {
-                    let repartoClass = '';
-                    let repartoIcon = '';
-                    let repartoNome = '';
-                    
-                    if(s.reparto === 'cucina') { 
-                        repartoClass = 'cucina'; 
-                        repartoIcon = '🍳'; 
-                        repartoNome = 'CUCINA';
-                    } else if(s.reparto === 'pizzeria') { 
-                        repartoClass = 'pizzeria'; 
-                        repartoIcon = '🍕'; 
-                        repartoNome = 'PIZZERIA';
-                    } else if(s.reparto === 'friggitoria') { 
-                        repartoClass = 'friggitoria'; 
-                        repartoIcon = '🍟'; 
-                        repartoNome = 'FRIGGITORIA';
-                    } else {
-                        repartoClass = '';
-                        repartoIcon = '❓';
-                        repartoNome = s.reparto || 'SCONOSCIUTO';
-                    }
-                    
-                    let azioneText = s.azione === 'accettato' 
-                        ? '<span class="badge-accettato">✅ ACCETTATO</span>' 
-                        : '<span class="badge-declinato">❌ DECLINATO</span>';
-                    
-                    let dataFormattata = new Date(s.data_ora).toLocaleString('it-IT');
-                    
-                    html += `<tr>
-                        <td>${dataFormattata}</td>
-                        <td><strong>🍽️ ${s.tavolo_id}</strong></td>
-                        <td class="${repartoClass}">${repartoIcon} ${repartoNome}</td>
-                        <td>${azioneText}</td>
-                    </tr>`;
-                }
-                
-                html += `</tbody>
-                <\/table>`;
-                
-                document.getElementById('storico-container').innerHTML = html;
+                document.getElementById('corpo-tabella').innerHTML = html;
+
+                document.getElementById('info-pagina').innerText = 'Pagina ' + d.pagina + ' di ' + (d.totalePagine || 1);
+                document.getElementById('btn-prev').disabled = d.pagina <= 1;
+                document.getElementById('btn-next').disabled = d.pagina >= d.totalePagine;
             } catch(e) {
-                console.error(e);
-                document.getElementById('storico-container').innerHTML = '<div class="empty">❌ Errore caricamento storico</div>';
+                console.error('Errore caricamento:', e);
+                document.getElementById('corpo-tabella').innerHTML = '<tr><td colspan="5" class="empty">❌ Errore di caricamento</td></tr>';
             }
         }
-        
-        caricaStorico();
-            async function cancellaStorico() {
-          if(confirm("⚠️ Sei sicuro? Cancellerai TUTTO lo storico degli ordini!")) {
-            let res = await fetch(API_URL + '/api/cancella-storico', { method: 'POST' });
-          if(res.ok) {
-            alert("✅ Storico cancellato!");
+
+        function applicaFiltri() {
+            paginaCorrente = 1;
             caricaStorico();
-          } else {
-            alert("❌ Errore durante la cancellazione");
         }
-    }
-}
+
+        function resetFiltri() {
+            document.getElementById('filtro-data').value = '';
+            document.getElementById('filtro-reparto').value = '';
+            document.getElementById('filtro-azione').value = '';
+            paginaCorrente = 1;
+            caricaStorico();
+        }
+
+        function cambiaPagina(delta) {
+            paginaCorrente += delta;
+            if (paginaCorrente < 1) paginaCorrente = 1;
+            if (paginaCorrente > totalePagine) paginaCorrente = totalePagine;
+            caricaStorico();
+        }
+
+        async function cancellaStorico() {
+            const dataInput = document.getElementById('filtro-data').value;
+            if (!dataInput) {
+                alert('⚠️ Seleziona prima una DATA nel filtro.\n\nVerranno cancellati TUTTI i movimenti PRECEDENTI a quella data.');
+                return;
+            }
+
+            if (!confirm('⚠️ ATTENZIONE!\n\nStai per cancellare TUTTI i movimenti precedenti al ' + dataInput + '.\n\nQuesta azione è IRREVERSIBILE.\n\nContinuare?')) return;
+
+            if (!confirm('🛑 ULTIMA CONFERMA\n\nSei DAVVERO sicuro di voler cancellare lo storico fino al ' + dataInput + '?\n\nQuesta azione NON può essere annullata.')) return;
+
+            try {
+                const res = await fetch(API_URL + '/api/cancella-storico-fino-al', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({data_limite: dataInput})
+                });
+                const d = await res.json();
+                alert('✅ Cancellati ' + d.eliminati + ' movimenti');
+                paginaCorrente = 1;
+                caricaStorico();
+            } catch(e) {
+                console.error('Errore cancellazione:', e);
+                alert('❌ Errore durante la cancellazione');
+            }
+        }
+
+        // Carica all'apertura
+        caricaStorico();
     </script>
 </body>
 </html>

@@ -781,10 +781,6 @@ function parla(testo) {
                 let dRip = new Date(t.pizzeria_data_ripresa);
                 if(dRip > dieciMinutiFa) cardClass += ' tavolo-ripreso';
             }
-            if(t.cucina_data_ripresa) {
-                let dRip = new Date(t.cucina_data_ripresa);
-                if(dRip > dieciMinutiFa) cardClass += ' tavolo-ripreso';
-            }
 
             // Riga Pizzeria
             let classP = 'reparto-riga pizzeria';

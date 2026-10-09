@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS stati_tavoli_cucina (
   ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   stato_cassa VARCHAR(50) DEFAULT 'in_attesa',
   data_declino_cucina TIMESTAMP DEFAULT NULL,
+  data_ripresa TIMESTAMP DEFAULT NULL,
   FOREIGN KEY (tavolo_id) REFERENCES tavoli(id)
 );
 
@@ -26,6 +27,7 @@ CREATE TABLE IF NOT EXISTS stati_tavoli_pizzeria (
   ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   stato_cassa VARCHAR(50) DEFAULT 'in_attesa',
   data_declino_pizzeria TIMESTAMP DEFAULT NULL,
+  data_ripresa TIMESTAMP DEFAULT NULL,
   FOREIGN KEY (tavolo_id) REFERENCES tavoli(id)
 );
 
