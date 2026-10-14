@@ -1,268 +1,347 @@
-# 🍕 PizzeriaOperativa — Guida rapida
+# 🍕 PizzeriaOperativa — Guida completa
 
-## 📍 Percorsi e URL
-
-| Cosa | Valore |
-|---|---|
-| Progetto (WSL) | `/mnt/c/Users/1466o/Desktop/PizzeriaOperativa` |
-| Progetto (Windows) | `C:\Users\1466o\Desktop\PizzeriaOperativa` |
-| Frontend | porta `8080` |
-| Backend | porta `3000` |
-| Database | porta `3306` |
+Sistema di gestione operativa per pizzeria con postazioni separate per **Cassa**, **Pizzeria**, **Cucina**, **Friggitoria** e **Storico**.
 
 ---
 
-## 🚀 Avvio rapido (consigliato)
+## 📋 Indice
+
+1. [Cos'è il progetto](#cosè-il-progetto)
+2. [Requisiti](#requisiti)
+3. [Prima installazione](#prima-installazione)
+4. [Avvio quotidiano](#avvio-quotidiano)
+5. [Diagnostica](#diagnostica)
+6. [Struttura del progetto](#struttura-del-progetto)
+7. [Tecnologie usate](#tecnologie-usate)
+8. [Pagine e funzionalità](#pagine-e-funzionalità)
+9. [Risoluzione problemi](#risoluzione-problemi)
+10. [Backup e ripristino](#backup-e-ripristino)
+
+---
+
+## Cos'è il progetto
+
+**PizzeriaOperativa** coordina i reparti di una pizzeria:
+
+- **Pizzeria** e **Cucina** accettano/declinano i tavoli
+- **Friggitoria** riceve i frittini ordinati dalla Pizzeria
+- **Cassa** (manager) vede tutto in tempo reale + gestisce menu frittini + storico + reset
+- **Storico** consultabile con filtri (data, reparto, azione)
+
+Ogni postazione ha il suo dispositivo, e tutti comunicano via rete locale.
+
+---
+
+## Requisiti
+
+- **Windows 10/11** con **WSL2** (Ubuntu)
+- **Docker Desktop** installato e avviato
+- **Git** (per clonare/aggiornare)
+- Connessione Wi-Fi (per far comunicare telefono/tablet con il PC)
+
+---
+
+## Prima installazione
+
+### 1. Clona il progetto
 
 ```bash
-cd /mnt/c/Users/1466o/Desktop/PizzeriaOperativa
+cd ~/Desktop
+git clone https://github.com/osv1966/pizzeria-pos.git PizzeriaOperativa
+cd PizzeriaOperativa
+```
+
+### 2. Lancia il setup
+
+```bash
+./setup.sh
+```
+
+Lo script fa **tutto da solo**:
+- Crea il file `.env`
+- Crea il volume MySQL
+- Avvia i container
+- Aspetta che MySQL sia pronto
+- Importa `init.sql` (crea tabelle + 60 tavoli + menu frittini)
+- Verifica che tutto funzioni
+
+### 3. Avvia il progetto
+
+```bash
 ./avvia.sh
 ```
 
-Lo script fa tutto:
-1. Avvia i container Docker
-2. Aspetta che siano pronti
-3. Trova l'IP della Wi-Fi attuale
-4. Verifica che il backend risponda
-5. Stampa gli URL pronti
-6. Genera un QR code per il cliente
-
-⚠️ **Ingrandisci il terminale** (Ctrl + rotella) per far vedere meglio il QR.
-
 ---
 
-## 🛑 Fermare il progetto
+## Avvio quotidiano
+
+### Procedura standard
+
+1. **Apri Docker Desktop** (aspetta icona verde 🐳)
+2. **Apri WSL** (Ubuntu)
+3. Vai nel progetto:
+   ```bash
+   cd /mnt/c/Users/Utente/Desktop/PizzeriaOperativa
+   ```
+4. Avvia:
+   ```bash
+   ./avvia.sh
+   ```
+
+Lo script:
+- Fa la diagnostica
+- Ripara eventuali problemi
+- Trova l'IP attuale
+- Mostra gli URL per telefono/tablet
+- Genera il QR code
+
+### Fermare il progetto
 
 ```bash
-cd /mnt/c/Users/1466o/Desktop/PizzeriaOperativa
 docker compose down
 ```
 
 ---
 
-## 🌐 URL da usare
-
-### Da PC (il portatile stesso)
-```
-http://localhost:8080/cassa.html
-http://localhost:8080/cucina.html
-http://localhost:8080/pizzeria.html
-http://localhost:8080/friggitoria.html
-http://localhost:8080/storico.html
-```
-
-### Da telefono / altri dispositivi (stessa rete)
-Sostituisci `IP` con quello attuale (lo trovi con `./avvia.sh`):
-```
-http://IP:8080/cassa.html
-http://IP:8080/cucina.html
-http://IP:8080/pizzeria.html
-http://IP:8080/friggitoria.html
-http://IP:8080/storico.html
-```
-
----
-
-## 🔍 Come trovare l'IP attuale
-
-Da WSL:
+## Diagnostica
 
 ```bash
-ipconfig.exe | grep "IPv4"
+./diagnostica.sh
 ```
 
-Ignora:
-- `127.0.0.1` → localhost
-- `172.28.80.1` → WSL, non serve
+Controlla:
+- ✅ Docker attivo
+- ✅ Container Up
+- ✅ MySQL risponde
+- ✅ Tutte le tabelle (8)
+- ✅ 60 tavoli presenti
+- ✅ Tutte le API backend
+- ✅ Tutte le pagine frontend
 
-Usa quello che corrisponde alla **Wi-Fi** (inizia con `192.168.x.x`, `10.x.x.x` o `172.x.x.x`).
+**Ripara automaticamente** quando possibile.
 
-Oppure lancia direttamente:
+---
 
-```bash
-ipconfig.exe | sed -n '/Wi-Fi/,/^$/p' | grep "IPv4"
+## Struttura del progetto
+
+```
+PizzeriaOperativa/
+├── .env                        ← configurazione database
+├── .gitignore                  ← file esclusi da git
+├── docker-compose.yml          ← configurazione container
+├── init.sql                    ← inizializzazione database
+│
+├── avvia.sh                    ← avvia il progetto
+├── setup.sh                    ← prima installazione
+├── diagnostica.sh              ← controlla + ripara
+│
+├── backend/
+│   ├── server.js               ← API e logica
+│   └── package.json
+│
+└── frontend/
+    ├── cassa.html              ← postazione Cassa (manager)
+    ├── pizzeria.html           ← postazione Pizzeria
+    ├── cucina.html             ← postazione Cucina
+    ├── friggitoria.html        ← postazione Friggitoria
+    ├── storico.html            ← storico movimenti
+    └── favicon-*.svg           ← icone pagine
 ```
 
 ---
 
-## 🎯 Dal cliente — passo per passo
+## Tecnologie usate
 
-1. **Collega il PC alla rete**
-   - Hotspot del tuo telefono, oppure
-   - Wi-Fi del cliente (nome + password)
+- **Backend**: Node.js 18 + Express
+- **Database**: MySQL 8
+- **Frontend**: HTML + CSS + JavaScript (vanilla)
+- **Web server**: nginx (serve i file HTML)
+- **Container**: Docker + Docker Compose
+- **Ambiente**: WSL2 (Ubuntu)
 
-2. **Avvia il progetto**
-   ```bash
-   cd /mnt/c/Users/1466o/Desktop/PizzeriaOperativa
-   ./avvia.sh
-   ```
+### Porte usate
 
-3. **Ingrandisci il terminale** (Ctrl + rotella)
-
-4. **Fai inquadrare il QR al cliente**
-   - Apre automaticamente la pagina Cassa
-
-5. **Per le altre pagine** leggi gli URL dal terminale
-
-6. **Fine demo**: `docker compose down`
+| Porta | Cosa |
+|---|---|
+| 3000 | Backend API (Node.js) |
+| 8080 | Frontend (nginx) |
+| 3306 | Database MySQL |
 
 ---
 
-## 🔄 Cambio rete (Wi-Fi → hotspot o viceversa)
+## Pagine e funzionalità
 
-**Non devi toccare il codice.** Il progetto usa IP dinamico.
+### 🍕 Pizzeria
 
-Devi solo:
-1. Collegare il PC alla nuova rete
-2. Rilanciare `./avvia.sh`
-3. Nuovo IP + nuovo QR
+- Card con 3 righe: PIZZERIA (cliccabile), CUCINA (badge), FRIGGITORIA (badge)
+- **ACCETTA / DECLINA** il tavolo
+- **Menu frittini**: 🍟 GESTISCI FRITTINI per ordinare frittini alla Friggitoria
+- **Effetto ripreso**: bordo verde pulsante + 🔄 RIPRESO (10 min) se il tavolo è stato ripreso dopo un declino
+- **Statistiche**: In attesa / Accettati / Split / Standby
+- **Barra SPLIT** (in alto): tavoli con stati misti
+- **Barra STANDBY** (in alto): tavoli declinati da entrambi
+- **RIPRENDI** sul reparto che ha declinato
+
+### 👨‍🍳 Cucina
+
+Come Pizzeria ma:
+- Riga CUCINA cliccabile
+- **NO** menu frittini (solo Pizzeria)
+- **RIPRENDI** solo sulla riga Cucina
+
+### 📋 Cassa (manager)
+
+- **Solo visualizzazione** (righe non cliccabili)
+- Pulsante **📜 STORICO** (apre lo storico)
+- Pulsante **🔄 RESET TAVOLI** (azzera tutto, mantiene storico)
+- Pulsante **🍟 GESTISCI MENU FRITTINI** (aggiungi/modifica/disattiva frittini)
+- **Effetto ripreso** (Pizzeria + Cucina)
+- **Statistiche** + **Barre SPLIT/STANDBY**
+
+### 🍟 Friggitoria
+
+- **Solo visualizzazione** (come Cassa ma senza STORICO/RESET)
+- Vede i frittini ordinati dalla Pizzeria
+- Nessun pulsante di azione
+
+### 📜 Storico
+
+- **Filtri**: 📅 Data | 🍕 Reparto | ✅ Azione
+- **Tabella**: ID, Tavolo, Reparto, Azione, Data/Ora
+- **Paginazione**: 50 movimenti per pagina
+- **🗑️ Cancella fino al...**: cancella storico precedente a una data (con 2 conferme)
+- Ogni movimento è tracciato: accettato/declinato per reparto
 
 ---
 
-## ⚠️ Problemi comuni
-
-### Il telefono non apre la pagina
-1. **Stessa rete?** Il telefono deve essere sulla stessa Wi-Fi/hotspot del PC
-2. **Firewall?** Le regole Windows devono esistere (già configurate, una tantum)
-3. **Isolamento client hotspot**: su Android, disattiva "Isola client" / "AP isolation"
-4. **IP giusto?** Rilancia `./avvia.sh`
-5. **Container attivi?** `docker compose ps` → tutti `Up`
+## Risoluzione problemi
 
 ### Docker non parte
-- Apri **Docker Desktop** su Windows prima di lanciare lo script
-- Aspetta che dica "Docker Desktop is running"
 
-### Backend non risponde
-```bash
-docker compose logs backend
+Apri PowerShell (Windows):
+```powershell
+Get-Process | Where-Object {$_.ProcessName -like "*docker*"} | Stop-Process -Force
 ```
-Controlla errori. A volte serve riavviare:
+Poi riapri Docker Desktop.
+
+### WSL non ha rete
+
+Apri PowerShell:
+```powershell
+wsl --shutdown
+```
+Riapri WSL.
+
+### MySQL non risponde
+
 ```bash
-docker compose restart backend
+docker compose down
+docker compose up -d
+sleep 30
+./diagnostica.sh
 ```
 
-### Porta già in uso
+### "Volume not found"
+
 ```bash
-sudo lsof -i :3000
-sudo lsof -i :8080
+docker volume create cartellafinalepizzeria_mysql_data
+docker compose up -d
+docker exec -i pizzeria_mysql mysql -u pizzeria -ppizzeria pizzeria < init.sql
 ```
 
-### Il QR code non appare
-- `qrencode` installato? `which qrencode`
-- Se manca: `sudo apt install -y qrencode`
+### Porta occupata
+
+Apri PowerShell (amministratore):
+```powershell
+net stop winnat
+net start winnat
+```
+
+### Errore "Cannot connect to MySQL"
+
+Verifica che `.env` esista:
+```bash
+cat .env
+```
+
+Se manca:
+```bash
+./setup.sh
+```
+
+### Port forwarding (perso dopo riavvio)
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+Se persiste:
+```powershell
+wsl --shutdown
+```
+Riapri WSL e rilancia.
 
 ---
 
-## 💾 Backup e ripristino
+## Backup e ripristino
 
-### Creare un backup
+### Backup completo
+
 ```bash
-cd /mnt/c/Users/1466o/Desktop
+cd /mnt/c/Users/Utente/Desktop
 zip -r PizzeriaOperativa_backup_$(date +%Y%m%d).zip PizzeriaOperativa \
   -x "*/node_modules/*" "*/.git/*"
 ```
 
-Il file appare sul Desktop. Copialo su **chiavetta USB** o **cloud**.
+### Backup solo database
 
-### Ripristinare un backup
 ```bash
-cd /mnt/c/Users/1466o/Desktop
-unzip PizzeriaOperativa_backup_YYYYMMDD.zip
+docker exec pizzeria_mysql mysqldump -u root -proot pizzeria > backup_db_$(date +%Y%m%d).sql
 ```
 
-Poi rilancia `./avvia.sh`.
-
----
-
-## 🐳 Comandi Docker utili
+### Ripristino database
 
 ```bash
-# Stato container
-docker compose ps
-
-# Log backend (in tempo reale)
-docker compose logs -f backend
-
-# Log frontend
-docker compose logs -f frontend
-
-# Riavvio
-docker compose restart
-
-# Rebuild completo (dopo modifiche ai file)
-docker compose down && docker compose up -d --build
-
-# Entrare dentro un container
-docker exec -it pizzeria_backend sh
-docker exec -it pizzeria_frontend sh
+docker exec -i pizzeria_mysql mysql -u root -proot pizzeria < backup_db_20261014.sql
 ```
 
 ---
 
-## 🔥 Firewall Windows (una tantum)
+## Comandi rapidi
 
-Le regole sono già configurate, ma se mai dovessi rifarle:
+| Cosa | Comando |
+|---|---|
+| Prima installazione | `./setup.sh` |
+| Avvio quotidiano | `./avvia.sh` |
+| Diagnostica + ripara | `./diagnostica.sh` |
+| Ferma tutto | `docker compose down` |
+| Stato container | `docker compose ps` |
+| Log backend | `docker compose logs backend | tail -30` |
+| Backup DB | `docker exec pizzeria_mysql mysqldump -u root -proot pizzeria > backup.sql` |
 
-Apri **PowerShell come amministratore**:
+---
+
+## Cambio rete (es. dal cliente con hotspot)
+
+Il progetto usa **IP dinamico** (window.location.hostname) → **funziona su qualsiasi rete senza modifiche**.
+
+Procedura:
+1. Collega il PC alla nuova rete (hotspot o Wi-Fi cliente)
+2. Lancia `./avvia.sh`
+3. Il QR code e gli URL si aggiornano da soli
+
+---
+
+## Firewall Windows (una tantum)
+
+Se telefono/tablet non riescono a connettersi, apri **PowerShell come amministratore**:
 
 ```powershell
 New-NetFirewallRule -DisplayName "Pizzeria Frontend 8080" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow
 New-NetFirewallRule -DisplayName "Pizzeria Backend 3000" -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow
 ```
 
-Verifica:
-```powershell
-Get-NetFirewallRule -DisplayName "Pizzeria*" | Format-Table DisplayName, Enabled, Direction, Action
-```
-
 ---
 
-## 🧠 Come funziona il progetto (note tecniche)
-
-- **Backend**: Node.js + Express su porta 3000
-- **Frontend**: nginx che serve file HTML su porta 8080
-- **Database**: MySQL 8 su porta 3306
-- **API URL nel frontend**: `'http://' + window.location.hostname + ':3000'`
-
-Questo significa che il frontend chiama automaticamente il backend usando **lo stesso IP da cui è stata caricata la pagina** → funziona su qualsiasi rete senza modifiche. 🎯
-
----
-
-## 📋 Riepilogo comandi essenziali
-
-```bash
-# Vai al progetto
-cd /mnt/c/Users/1466o/Desktop/PizzeriaOperativa
-
-# Avvia tutto (con IP e QR)
-./avvia.sh
-
-# Stato container
-docker compose ps
-
-# Ferma tutto
-docker compose down
-
-# Riavvio con rebuild
-docker compose down && docker compose up -d --build
-
-# Log backend
-docker compose logs -f backend
-```
-
----
-
-## 💻 Da portatile vs da telefono
-
-| Dispositivo | Cosa usare | Esempio |
-|---|---|---|
-| **Portatile** (dove gira Docker) | `localhost` — **sempre, non cambia mai** | `http://localhost:8080/cassa.html` |
-| **Telefono / tablet / altri PC** | **IP attuale** (lo trovi con `./avvia.sh`) | `http://10.186.123.89:8080/cassa.html` |
-| **Cliente dal suo telefono** | **IP attuale** o **QR code** | Inquadra il QR |
-
-⚠️ **Da telefono NON usare `localhost`** — punterebbe al telefono stesso, non al PC.
-
-**Perché funziona automaticamente:** il frontend usa `window.location.hostname`, quindi chiama il backend sullo stesso IP da cui è stata caricata la pagina. Non serve modificare nulla.
----
-
-*Ultimo aggiornamento: 2026-09-29*
+*Ultimo aggiornamento: 14/10/2026*
