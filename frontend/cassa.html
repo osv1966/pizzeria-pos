@@ -429,6 +429,121 @@
     .btn-reset:hover {
         background: #c82333;
     }
+        /* === MODALE MENU FRITTINI === */
+    .modale-menu {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    .modale-menu.aperta { display: flex; }
+    .modale-menu .modale-content {
+        background: #1a1f3a;
+        border: 3px solid #ff6b00;
+        border-radius: 20px;
+        padding: 20px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    .modale-menu .modale-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #ff6b00;
+    }
+    .modale-menu .modale-header h2 {
+        color: #fff;
+        font-size: 20px;
+        margin: 0;
+    }
+    .modale-menu .modale-close {
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 35px;
+        height: 35px;
+        font-size: 18px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    .aggiungi-frittino {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    .aggiungi-frittino input {
+        flex: 1;
+        padding: 10px;
+        border-radius: 10px;
+        border: none;
+        font-size: 14px;
+    }
+    .aggiungi-frittino button {
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .aggiungi-frittino button:hover { background: #218838; }
+    .frittino-riga {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        margin: 6px 0;
+        background: #fff;
+        border-radius: 10px;
+        color: #000;
+    }
+    .frittino-riga.inattivo {
+        opacity: 0.5;
+        background: #ddd;
+    }
+    .frittino-riga .nome {
+        flex: 1;
+        font-weight: bold;
+    }
+    .frittino-riga input {
+        flex: 1;
+        padding: 6px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+    .frittino-riga button {
+        border: none;
+        border-radius: 6px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 12px;
+    }
+    .btn-edit { background: #ffc107; color: #000; }
+    .btn-save { background: #28a745; color: #fff; }
+    .btn-toggle-off { background: #dc3545; color: #fff; }
+    .btn-toggle-on { background: #28a745; color: #fff; }
+    .btn-menu-frittini {
+        background: #ff9800;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 16px;
+    }
+    .btn-menu-frittini:hover { background: #e68900; }
+
     </style>
 </head>
 <body>
@@ -438,6 +553,7 @@
     <div class="azioni-cassa">
         <button class="btn-storico" onclick="apriStorico()">📜 STORICO</button>
         <button class="btn-reset" onclick="resetTavoli()">🔄 RESET TAVOLI</button>
+        <button class="btn-menu-frittini" onclick="apriMenuFrittini()">🍟 GESTISCI MENU FRITTINI</button>
     </div>    
         <div class="stats">
         <div class="stat-card">⏳ In attesa<br><span id="stat-attesa">0</span></div>
@@ -727,9 +843,98 @@ function parla(testo) {
         function apriStorico() {
             window.open('/storico.html', '_blank');
         } 
- 
-</script>
+        // === MENU FRITTINI ADMIN ===
+        async function apriMenuFrittini() {
+            document.getElementById('modale-menu-frittini').classList.add('aperta');
+            await caricaMenuFrittini();
+        }
 
+        function chiudiMenuFrittini() {
+            document.getElementById('modale-menu-frittini').classList.remove('aperta');
+        }
+
+        async function caricaMenuFrittini() {
+            try {
+                let res = await fetch(API_URL + '/api/menu-frittini-tutti');
+                let menu = await res.json();
+                let html = '';
+                menu.forEach(m => {
+                    let classeInattivo = m.attivo === 0 ? ' inattivo' : '';
+                    let btnToggle = m.attivo === 1 
+                        ? '<button class="btn-toggle-off" onclick="toggleFrittino(' + m.id + ', 0)">🗑️ Disattiva</button>'
+                        : '<button class="btn-toggle-on" onclick="toggleFrittino(' + m.id + ', 1)">✅ Riattiva</button>';
+                    html += '<div class="frittino-riga' + classeInattivo + '" id="riga-' + m.id + '">' +
+                                '<div class="nome">🍟 ' + m.nome + '</div>' +
+                                '<button class="btn-edit" onclick="modificaFrittino(' + m.id + ', \'' + m.nome.replace(/'/g, "\\'") + '\')">✏️</button>' +
+                                btnToggle +
+                            '</div>';
+                });
+                document.getElementById('lista-menu-frittini').innerHTML = html || '<div style="color:#fff;">Nessun frittino</div>';
+            } catch(e) { console.error(e); }
+        }
+
+        async function aggiungiFrittino() {
+            let nome = document.getElementById('nuovo-frittino').value.trim();
+            if(!nome) { alert('Inserisci un nome'); return; }
+            try {
+                await fetch(API_URL + '/api/menu-frittini', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({nome: nome, ordine: 99})
+                });
+                document.getElementById('nuovo-frittino').value = '';
+                await caricaMenuFrittini();
+            } catch(e) { console.error(e); }
+        }
+
+        async function modificaFrittino(id, nomeAttuale) {
+            let riga = document.getElementById('riga-' + id);
+            riga.innerHTML = 
+                '<input type="text" id="edit-' + id + '" value="' + nomeAttuale + '">' +
+                '<button class="btn-save" onclick="salvaModificaFrittino(' + id + ')">✅ Salva</button>' +
+                '<button class="btn-edit" onclick="caricaMenuFrittini()">❌ Annulla</button>';
+        }
+
+        async function salvaModificaFrittino(id) {
+            let nuovoNome = document.getElementById('edit-' + id).value.trim();
+            if(!nuovoNome) { alert('Inserisci un nome'); return; }
+            try {
+                await fetch(API_URL + '/api/menu-frittini/' + id, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({nome: nuovoNome})
+                });
+                await caricaMenuFrittini();
+            } catch(e) { console.error(e); }
+        }
+
+        async function toggleFrittino(id, attivo) {
+            try {
+                await fetch(API_URL + '/api/menu-frittini/' + id, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({attivo: attivo})
+                });
+                await caricaMenuFrittini();
+            } catch(e) { console.error(e); }
+        }
+</script>
+    <!-- MODALE MENU FRITTINI -->
+    <div id="modale-menu-frittini" class="modale-menu">
+        <div class="modale-content">
+            <div class="modale-header">
+                <h2>🍟 GESTIONE MENU FRITTINI</h2>
+                <button class="modale-close" onclick="chiudiMenuFrittini()">✕</button>
+            </div>
+            <div class="modale-body">
+                <div class="aggiungi-frittino">
+                    <input type="text" id="nuovo-frittino" placeholder="Nome nuovo frittino...">
+                    <button onclick="aggiungiFrittino()">➕ Aggiungi</button>
+                </div>
+                <div id="lista-menu-frittini"></div>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>
