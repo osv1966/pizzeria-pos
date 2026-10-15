@@ -642,21 +642,34 @@ if('speechSynthesis' in window) {
     speechSynthesis.onvoiceschanged = () => { voceScelta = trovaVoceFemminile(); };
     voceScelta = trovaVoceFemminile();
 }
+let codaVocale = [];
+let inPronuncia = false;
 
-function parla(testo) {
-    if(!voceAttiva) return;
-    if(!('speechSynthesis' in window)) return;
-    let msg = new SpeechSynthesisUtterance(testo);
+function processaCoda() {
+    if(inPronuncia || codaVocale.length === 0) return;
+    inPronuncia = true;
+    const testo = codaVocale.shift();
+    const msg = new SpeechSynthesisUtterance(testo);
     msg.lang = 'it-IT';
     msg.rate = 0.95;
     msg.pitch = 1.4;
     msg.volume = 1.0;
     if(!voceScelta) voceScelta = trovaVoceFemminile();
     if(voceScelta) msg.voice = voceScelta;
-    window.speechSynthesis.cancel();
+    msg.onend = () => { inPronuncia = false; setTimeout(processaCoda, 400); };
+    msg.onerror = () => { inPronuncia = false; setTimeout(processaCoda, 400); };
     window.speechSynthesis.speak(msg);
+    setTimeout(() => { if(inPronuncia && !window.speechSynthesis.speaking) { inPronuncia = false; processaCoda(); } }, 8000);
 }
-        
+
+
+function parla(testo) {
+    if(!voceAttiva) return;
+    if(!('speechSynthesis' in window)) return;
+    codaVocale.push(testo);
+    processaCoda();
+}
+
         function calcolaMinutiRimasti(ultimoAggiornamento, minutiTotali) {
             if(!minutiTotali) return 0;
             if(!ultimoAggiornamento) return minutiTotali;
@@ -690,6 +703,11 @@ function parla(testo) {
 
                     // STANDBY: entrambi declinato
                     if(p === 'declinato' && c === 'declinato') {
+                    if(!annunciati['standby_' + t.tavolo_id]) {
+                        annunciati['standby_' + t.tavolo_id] = true;
+                        parla(`Tavolo ${t.tavolo_id}, standby attenzione`);
+                    }
+                    
                         listaStandby.push(t);
                         continue;
                     }
@@ -697,6 +715,10 @@ function parla(testo) {
                 let pHaAgito = (p === 'accettato' || p === 'declinato');
                 let cHaAgito = (c === 'accettato' || c === 'declinato');
                 if(pHaAgito && cHaAgito && p !== c) {
+                if(!annunciati['split_' + t.tavolo_id]) {
+                        annunciati['split_' + t.tavolo_id] = true;
+                        parla(`Tavolo ${t.tavolo_id}, split attenzione`);
+                    }
                     listaSplit.push(t);
                     continue;
                 }
@@ -705,6 +727,8 @@ function parla(testo) {
                     listaNormali.push(t);
                     if(!(p === 'accettato' && c === 'accettato')) attesa++;
                     if(p === 'accettato' && c === 'accettato') accettati++;
+                    delete annunciati['split_' + t.tavolo_id];
+                    delete annunciati['standby_' + t.tavolo_id];
                 }
 
                 // COSTRUISCI CARD NORMALI
@@ -893,6 +917,11 @@ function parla(testo) {
                     method: 'PUT',
                     headers: {'Content-Type': 'application/json'}
                 });
+            if(azione === 'accetta') {
+                    parla(`Tavolo ${tavoloId}, accettato`);
+            } else {
+                    parla(`Tavolo ${tavoloId}, declinato`);
+            }
                 repartoAperto = false;
                 carica();
             } catch(e) {
@@ -908,103 +937,11 @@ function parla(testo) {
                     method: 'PUT',
                     headers: {'Content-Type': 'application/json'}
                 });
+                parla(`Tavolo ${id}, ripreso`);
                 carica();
             } catch(e) { console.error(e); }
         }
            
-                function seleziona(id) {
-            tavoloSelezionato = id;
-            document.getElementById('info-selezione').innerHTML = `📋 Tavolo ${id} selezionato`;
-            document.getElementById('azione-panel').style.display = 'block';
-            document.getElementById('tempi-buttons').style.display = 'none';
-
-            // Trova il tavolo selezionato
-            let tavolo = tavoliCorrenti.find(t => t.tavolo_id === id);
-            
-            // Nascondi entrambi i gruppi
-            document.getElementById('btn-group-main').style.display = 'none';
-            document.getElementById('btn-group-accetta').style.display = 'none';
-
-            if(tavolo) {
-                // Se non è ancora accettato → mostra ACCETTA/DECLINA
-                if(tavolo.stato_cassa !== 'accettato' && tavolo.stato_cassa !== 'declinato') {
-                    document.getElementById('btn-group-accetta').style.display = 'flex';
-                } else {
-                    // Se accettato → mostra PRONTO/IN LAVORAZIONE/NON DISP.
-                    document.getElementById('btn-group-main').style.display = 'flex';
-                }
-            }
-            carica();
-        }
-                   
-        function mostraTempi() {
-            document.getElementById('btn-group-main').style.display = 'none';
-            document.getElementById('tempi-buttons').style.display = 'block';
-        }
-        
-        function nascondiTempi() {
-            document.getElementById('btn-group-main').style.display = 'flex';
-            document.getElementById('tempi-buttons').style.display = 'none';
-        }
-        
-        async function cambiaStato(stato) {
-            if(!tavoloSelezionato) return;
-            await fetch(API_URL + '/api/stati-pizzeria/' + tavoloSelezionato, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({stato: stato, tempo_minuti: null})
-            });
-            if(stato === 'pronto') parla(`Tavolo ${tavoloSelezionato}, pronto`);
-            tavoloSelezionato = null;
-            document.getElementById('azione-panel').style.display = 'none';
-            carica();
-        }
-        
-        async function accettaTavolo() {
-            if(!tavoloSelezionato) return;
-            await fetch(API_URL + '/api/cassa-rispondi-pizzeria/' + tavoloSelezionato, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({azione: 'accetta'})
-            });
-            parla(`Tavolo ${tavoloSelezionato}, accettato`);
-            tavoloSelezionato = null;
-            document.getElementById('azione-panel').style.display = 'none';
-            carica();
-        }
-
-        async function declinaTavolo() {
-            if(!tavoloSelezionato) return;
-            await fetch(API_URL + '/api/cassa-rispondi-pizzeria/' + tavoloSelezionato, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({azione: 'declina'})
-            });
-            parla(`Tavolo ${tavoloSelezionato}, declinato`);
-            tavoloSelezionato = null;
-            document.getElementById('azione-panel').style.display = 'none';
-            carica();
-        }
-        
-        async function lavorazioneConTempo(minuti) {
-            if(!tavoloSelezionato) return;
-            await fetch(API_URL + '/api/stati-pizzeria/' + tavoloSelezionato, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({stato: 'lavorazione', tempo_minuti: minuti})
-            });
-            parla(`Tavolo ${tavoloSelezionato}, lavoro ${minuti} minuti`);
-            tavoloSelezionato = null;
-            document.getElementById('azione-panel').style.display = 'none';
-            carica();
-        }
-        
-        function annulla() {
-            tavoloSelezionato = null;
-            document.getElementById('azione-panel').style.display = 'none';
-            carica();
-        }
-        
         carica();
         setInterval(carica, 3000);
         
@@ -1090,8 +1027,12 @@ function parla(testo) {
                 }
             });
         }
+                function numeroInParole(n) {
+            const parole = ['zero','una','due','tre','quattro','cinque','sei','sette','otto','nove','dieci'];
+            return parole[n] || n;
+        }
 
-        async function confermaFrittini() {
+                async function confermaFrittini() {
             // Controlla che ci sia almeno un frittino selezionato
             let prodotti = [];
             for(let nome in frittiniCorrenti) {
@@ -1107,6 +1048,14 @@ function parla(testo) {
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({prodotti: prodotti})
                 });
+                // Voce conferma frittini
+                let nomiFrittini = prodotti.map(p => {
+                    let qty = p.quantita;
+                    let parola = numeroInParole(qty);
+                    let porzione = qty === 1 ? 'porzione' : 'porzioni';
+                    return `${parola} ${porzione} di ${p.prodotto}`;
+                }).join(', ');
+                parla(`Tavolo ${tavoloFrittiniCorrente}, frittini ordinati: ${nomiFrittini}`);
                 chiudiModaleFrittini();
                 carica();
             } catch(e) {
