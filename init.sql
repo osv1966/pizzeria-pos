@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS stati_tavoli_friggitoria (
   ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   stato_cassa VARCHAR(50) DEFAULT 'in_attesa',
   prodotti TEXT DEFAULT NULL,
+  data_declino_friggitoria TIMESTAMP DEFAULT NULL,
   FOREIGN KEY (tavolo_id) REFERENCES tavoli(id)
 );
 
